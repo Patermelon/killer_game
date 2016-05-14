@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+<title>要酷！</title>
+<link rel="stylesheet" href="./styles/main.css">
+</head>
+
+	<body class = 'wrapper'>
+
+		<div class = 'div-left'>
+			游戏信息
+			<div id = 'gameInfo'> </div>
+		</div>
+		<div class = 'div-right'>
+			历史信息
+			<div id="historyMsg">
+            </div>
+            <div class = 'MsgControl'>
+            	<textarea id = 'messageInput' placeholder = 'enter message here'></textarea>
+            	<button id = 'sendBtn' type = 'button'> Send </button>
+            </div>
+		</div>
+
+        <div id="loginWrapper">
+            <p id="info">connecting to server...</p>
+            <div id="nickWrapper">
+                <input type="text" placeHolder="nickname" id="nicknameInput" />
+                <input type="button" value="OK" id="loginBtn" />
+            </div>
+        </div>
+
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="scripts/killer_game.js"></script>
+
+	</body>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</html>
