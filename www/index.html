@@ -13,9 +13,13 @@
 		</div>
 		<div class = 'div-right'>
 			历史信息
-			<div id="historyMsg">
-            </div>
+			<div id="historyMsg"></div>
             <div class = 'MsgControl'>
+                <div class = 'ControlButtons'>
+                    <label for = 'colorWrapper'>
+                        <input id = 'colorStyle' type = 'color' value = '#6666ff'/>
+                    </label>
+                </div>     
             	<textarea id = 'messageInput' placeholder = 'enter message here'></textarea>
             	<button id = 'sendBtn' type = 'button'> Send </button>
             </div>
@@ -25,7 +29,7 @@
             <p id="info">connecting to server...</p>
             <div id="nickWrapper">
                 <input type="text" placeHolder="nickname" id="nicknameInput" />
-                <input type="button" value="OK" id="loginBtn" />
+                <button id = 'loginBtn' type = 'button'> OK </button>
             </div>
         </div>
 

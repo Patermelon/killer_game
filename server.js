@@ -13,7 +13,6 @@ server.listen(process.env.PORT || 3000);//publish to heroku
 //handle the socket
 io.sockets.on('connection', function(socket) {
     //new user login
-    console.log('new user login');
     socket.on('login', function(nickname) {
         if (users.indexOf(nickname) > -1) {
             socket.emit('nickExisted');
