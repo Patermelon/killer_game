@@ -1,6 +1,6 @@
 window.onload = function() {
-    var hichat = new Game();
-    hichat.init();
+    var game = new Game();
+    game.init();
 };
 var Game = function() {
     this.socket = null;
@@ -61,7 +61,7 @@ Game.prototype = {
         	messageInput.value = '';
         	messageInput.focus();
         	if (msg.trim().length != 0) {
-        		that.socket.emit('postMsg',msg,color);
+    		that.socket.emit('postMsg',msg,color);
         		that._displayNewMsg('me',msg,color);
         		return;
         	}
@@ -77,22 +77,18 @@ Game.prototype = {
                 that._displayNewMsg('me', msg, color);
             };
         }, false);
-	};
-	/*
-	_displayNewMsg: function(user, msg, color) {
-        var container = document.getElementById('historyMsg'),
+	}//_fun: function(){}
+}
+
+Game.prototype._displayNewMsg = function(user, msg, color) {
+    var container = document.getElementById('historyMsg'),
             msgToDisplay = document.createElement('p'),
-            date = new Date().toTimeString().substr(0, 8),
+            date = new Date().toTimeString().substr(0, 8);
         msgToDisplay.style.color = color || '#000';
         msgToDisplay.innerHTML = user + '<span class="timespan">(' + date + '): </span>' + msg;
         container.appendChild(msgToDisplay);
         container.scrollTop = container.scrollHeight;
-    }*/
-
-    init2: function(){}
 }
-
-    
 
 
 
