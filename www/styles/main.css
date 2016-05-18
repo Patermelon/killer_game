@@ -2,33 +2,136 @@ html, body {
     margin: 0;
     background-color: #efefef;
     font-family: sans-serif;
+    background-image: url(../img/background.jpg);
+    background-size: 100% auto;
 }
+
+/*  _Section: background  */
+
 .wrapper {
-    width: 800px;
-    height: 640px;
+    width: 1350px;
+    height: 800px;
     padding: 5px;
     margin: 0 auto;
-    background-color: #ddd;
+    color: #fff;
 }
 
-.div-left {
-	float: left;
-	width: 457px;
-    height: 540px;
+/*  _Section: lobby   */
+
+#lobbyWrapper {
+    width: 750px;
+    height: 650px;
     padding: 5px;
-    margin: 5px;
-	display: inline-block;
-	background-color: #ccffff;
+    clear: both;
+    float: left;
 }
 
-.div-right {
+h3#welcome {
+    margin-left: 24%;
+}
+
+.lobby div {
+    margin-bottom: 10px;
+    margin-top: 10px;
+}
+
+.banner_left1 {
+    float: left;
+    position: relative;
+    left: 5%;
+}
+
+.banner_left2 {
+    float: left;
+    position: relative;
+    left: 48%;
+}
+
+.float-inline {
+    float: left;
+}
+
+.newline {
+    clear: both;
+}
+
+#roomhostWrapper {
+    width: 240px;
+    height: 50px;
+    //display: none;
+}
+
+#gameModePrompt {
+    margin-right: 10px;
+}
+
+
+#gameModeOption {
+    width: 100px;
+    height: 25px;
+    padding: 5px;
+    background-color: #ff9900;
+    font-size: 16px;
+}
+
+#roomguestWrapper {
+    width: 240px;
+    height: 50px;
+}
+
+#gameDescription {
+    //margin-left: 30%;
+    width: 200px;
+    height: 50px;
+}
+
+#playerList th, td{
+    height: 40px;
+    border: 1px solid red;
+    font-family: verdana;
+}
+
+table {
+    border-collapse: collapse;
+    margin:0 auto;
+}
+
+th {
+    text-align: center;
+}
+
+td {
+    text-align: center;
+}
+
+tr:hover {
+    background-color: rgba(204,204,204,.4);
+}
+
+#controlBtns {
+    padding: 5px;
+}
+#startBtn {
+    width: 140px;
+    height: 50px;
+    background-color: #ff9900;
+    border-radius: 8px;
+    position: relative;
+    left: 40%;
+    font-weight: bold;
+    font-size: 22px;
+}
+
+/*  _Section: chat    */
+
+.chatWrapper {
 	float: right;
-	width: 300px;
-    height: 540px;
+	width: 400px;
+    height: 650px;
     padding: 5px;
-    margin: 5px;
+    margin-right: 3%;
 	display: inline-block;
-	background-color: #ccffff;
+    border-radius: 10px;
 }
 
 #colorStyle {
@@ -36,55 +139,51 @@ html, body {
     height: 20px;
     margin-top: 3px;
     margin-right: 3px;
-    background-color: #ccffff;
-    outline: none;
+    background-color: rgba(255,255,255,0);
+    border: none;
     border-radius: 8px;
 }
 
 #colorWrapper {
-    background-color: #ddd;
+    background-color: #ffff80;
+
 }
 
 #messageInput {
-	width: 200px;
+	width: 280px;
 	height: 30px;
 	padding: 10px;
 	margin-top: 3px;
-	border: 5px solid #66ff33;
+	border: 2px solid #66ff33;
+    border-radius: 10px;
+    font-size: 22px;
 }
 
 #sendBtn {
 	-webkit-appearance: none;
-    width: 60px;
-    height: 40px;
+    width: 80px;
+    height: 50px;
     padding: 10px;
-	margin-top: 10px;
+	margin-top: 7px;
 	margin-left: 2px;
     float: right;
-    font-weight:bold;
-    border: solid #666 1px;
-    font-size: 14px;
+    font-weight: bold;
+    font-size: 18px;
+    border-radius: 8px;
+    background-color: #66ff33;
 }
 
 #historyMsg {
-	width: 270px;
-	height: 400px;
+	width: 360px;
+	height: 500px;
 	overflow: auto;
 	padding: 10px;
-	border: 5px solid #66ff33;
-	background-color: #fff;
+	border: 2px solid #66ff33;
 }
 
-#gameInfo {
-	width: 270px;
-	height: 400px;
-	overflow: auto;
-	padding: 10px;
-	border: 5px solid #66ff33;
-	background-color: #fff;
-}
+/*  _Section: login-window    */
 
-/* comment this for pure html test 
+/* comment this for pure html test */
 #loginWrapper {
     position: fixed;
     top: 0;
@@ -94,15 +193,30 @@ html, body {
     background-color: rgba(5, 5, 5, .6);
     text-align: center;
     color: #fff;
-    display: block;
     padding-top: 200px;
+    width: 100%;
+    height: 600px;
+    background-image: url(../img/background.jpg);
+    background-size: 100% auto;
+    display: block;
 }
-*/
+
 #nickWrapper {
+    display: ;
+    font-size: 20px;
+}
+
+#nicknameInput {
+    width: 31%;
+    height: 40px;
+    font-size: 30px;
+    border-radius: 20px;
+    text-align: center;
+}
+
+button#loginBtn {
     display: none;
 }
-
-
 
 
 

@@ -1,34 +1,66 @@
 <!doctype html>
 <html>
-<head>
-<title>要酷！</title>
-<link rel="stylesheet" href="./styles/main.css">
-</head>
+    <head>
+        <title>游戏</title>
+        <link rel="stylesheet" href="./styles/main.css">
+    </head>
 
 	<body class = 'wrapper'>
 
-		<div class = 'div-left'>
-			游戏信息
-			<div id = 'gameInfo'> </div>
-		</div>
-		<div class = 'div-right'>
+        <h3 id = "welcome" > 杀人游戏 v0.1 </h3>
+
+        <div id = "lobbyWrapper" class = 'lobby'>
+            <div id = "gameInfo">
+                <div id = "roomhostWrapper" class = "banner_left1">
+                    <div id = "gameModePrompt" class = "float-inline">选择游戏模式: </div>
+                    <div id = "gameMode" class = "float-inline">
+                        <select id = "gameModeOption">
+                            <option value = '7'> 7人局 </option>
+                            <option value = '8' selected = 'selected'> 8人局 </option>
+                        </select>
+                    </div>
+                </div>
+                <div id = "roomguestWrapper" class = "banner_left1">
+                    <div>  </div>
+                </div>
+                <div class = "banner_left2">
+                    <div id = "gameDescription"> 本模式的具体信息在这里 </div>
+                </div>
+            </div>
+            <table id = "playerList" class = "newline">
+                <thead>
+                    <tr>
+                        <th> No. </th>
+                        <th> ID </th>
+                        <th> Control </th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <div id = "controlBtns">
+                <button id = "startBtn" > 开始游戏 </button>
+            </div>
+        </div>
+		
+		<div class = "chatWrapper">
 			历史信息
-			<div id="historyMsg"></div>
+			<div id="historyMsg"> </div>
             <div class = 'MsgControl'>
                 <div class = 'ControlButtons'>
                     <label for = 'colorWrapper'>
-                        <input id = 'colorStyle' type = 'color' value = '#6666ff'/>
+                        字体颜色: 
+                        <input id = 'colorStyle' type = 'color' value = '#ffff80'/>
                     </label>
                 </div>     
-            	<textarea id = 'messageInput' placeholder = 'enter message here'></textarea>
-            	<button id = 'sendBtn' type = 'button'> Send </button>
+            	<textarea id = 'messageInput'></textarea>
+            	<button id = 'sendBtn' type = 'button'> 发送 </button>
             </div>
 		</div>
 
-        <div id="loginWrapper">
-            <p id="info">connecting to server...</p>
+        <div id="loginWrapper" class = "newline">
+            <h1 id="info">connecting to server...</h1>
             <div id="nickWrapper">
-                <input type="text" placeHolder="nickname" id="nicknameInput" />
+                <input type="text" id="nicknameInput" />
                 <button id = 'loginBtn' type = 'button'> OK </button>
             </div>
         </div>
