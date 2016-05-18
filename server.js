@@ -6,7 +6,7 @@ var express = require('express'),
 
 app.use('/',express.static(__dirname + '/www'));
 
-server.listen(8888);
+server.listen(process.env.PORT || 8888);
 
 
 //define variables

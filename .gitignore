@@ -1,5 +1,5 @@
 .DS_Store
 www/scripts/killer_game_backup.js
-/node_modules
+/node_modules/*
 npm-debug.log
 /*.env
