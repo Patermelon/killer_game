@@ -18,7 +18,7 @@ var Lobby = function() {
     this.socket = null;
     var flag_imroomhost = 0;
         myusername = '';
-        gameMode = '8';
+        gameMode = new GameMode('8');
 }//Lobby constructor
 
 
@@ -36,8 +36,12 @@ Lobby.prototype = {
         });
 
 		this.socket.on('nickExisted',function(){
-			document.getElementById('info').textContent = 'This ID already exists.';
+			document.getElementById('info').textContent = '这个昵称已存在';
 		});
+
+        this.socket.on('roomFull',function(){
+            document.getElementById('info').textContent = '豹倩，房间已满';
+        });
 
 		this.socket.on('loginSuccess',function(id){
 			document.title = '游戏中| ' + document.getElementById('nicknameInput').value;
@@ -50,9 +54,7 @@ Lobby.prototype = {
 
 		this.socket.on('system',function(id, action){
 			var msg = '&quot;' + id + '&quot;' + (action == 'login' ? ' 加入了房间' : ' 退出了房间');
-
             that.systemLog(msg);
-
             that.socket.emit('amIroomhost');
 		});
 
@@ -81,11 +83,10 @@ Lobby.prototype = {
 
 //  lobby handling
 
-        this.socket.on('youareroomhost', function(roomhostIndicator,gameModeIndicator) {
+        this.socket.on('youareroomhost', function(roomhostIndicator,gameModeIndicator_name) {
             flag_imroomhost = roomhostIndicator;
-            gameMode = gameModeIndicator;
+            gameMode.name = gameModeIndicator_name;
 
-            //that._debug_feedback('After knowing the host, showgameInfo');
             that._showgameInfo(gameMode);
             that.socket.emit('pullplayerList');
         });
@@ -95,18 +96,17 @@ Lobby.prototype = {
             that._showplayerList(users);
         });
 
-        this.socket.on('gameModeChanged', function(gameModeIndicator) {
-            gameMode = gameModeIndicator;
-            // call chat to indicate change of gameMode
-            that._debug_feedback('gameModeChanged to ' + gameModeIndicator);
+        this.socket.on('gameModeChanged', function(gameModeIndicator_name) {
+            gameMode.name = gameModeIndicator_name;
+            that.systemLog('游戏模式变更为：' + gameMode.title());
             that._showgameInfo(gameMode);
         });
 
         document.getElementById('gameModeOption').addEventListener('change', function() {
             var option_name = document.getElementById('gameModeOption');
-            that.socket.emit('gameModeChange', option_name.value);
-            gameMode = option_name.value;
-            that._displayDescription(option_name.value);
+            gameMode.name = option_name.value;
+            that.socket.emit('gameModeChange', gameMode.name);
+            that._displayDescription(gameMode);
         },false);
 
 //  chat handling
@@ -156,16 +156,9 @@ Lobby.prototype._displayNewMsg = function(user, msg, color) {
 
 Lobby.prototype._displayDescription = function(gameMode) {
     var msgToDisplay = document.getElementById('gameDescription');
-
-    switch (gameMode) {
-        case '7':
-            msgToDisplay.innerHTML = '2警2杀1医2平';
-            break;
-        case '8':
-            msgToDisplay.innerHTML = '2警2杀1医1狙2平';
-            break;
-        default :
-    }
+    this._debug_feedback('showing gameMode.description');
+    this._debug_feedback('it should be ' + gameMode.description());
+    msgToDisplay.innerHTML = gameMode.description();
 }
 
 Lobby.prototype._showgameInfo = function(gameMode) {
@@ -173,26 +166,16 @@ Lobby.prototype._showgameInfo = function(gameMode) {
         this._debug_feedback('I am host now, should display hostWrapper.');
         document.getElementById('roomhostWrapper').style.display = "block";
         document.getElementById('roomguestWrapper').style.display = "none";
-        this._displayDescription(gameMode);
     } else {
         document.getElementById('roomhostWrapper').style.display = "none";
         document.getElementById('roomguestWrapper').style.display = "block";
-        this._debug_feedback('generate gameModeName..');
+        this._debug_feedback('I am not host, generate gameModeTitle.');
         
-        var gameModeName = document.getElementById('roomguestWrapper').children[0];
+        var gameModeTitle = document.getElementById('roomguestWrapper').children[0];
         /**/
-        switch (gameMode) {
-            case '7':
-                gameModeName.innerHTML = '游戏模式：7人局';
-                break;
-            case '8':
-                gameModeName.innerHTML = '游戏模式：8人局';
-                break;
-            default :
-        }
-
-        this._displayDescription(gameMode);
+        gameModeTitle.innerHTML = '游戏模式：' + gameMode.title();
     }
+    this._displayDescription(gameMode);
 }
 
 Lobby.prototype._showplayerList = function(users) {
@@ -222,7 +205,7 @@ Lobby.prototype._showplayerList = function(users) {
                 var kickBtn = document.createElement('button');
                 kickBtn.innerHTML = 'kick';
                 kickBtn.setAttribute("id","kick" + i);
-                kickBtn.setAttribute("style", "width: 150px; height: 40px; background-color: #cccccc;");
+                kickBtn.setAttribute("class","kickBtn");
                 cell_kickBtn.appendChild(kickBtn);
                 row.appendChild(cell_kickBtn);
 

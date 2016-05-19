@@ -12,8 +12,8 @@ server.listen(process.env.PORT || 8888);
 //define variables
 var users = [];              // the list of users' id
     roomhostExits = 0;       // By default, there is no roomhost
-    gameModeIndicator = '8'; // By default, gameMode is 8
-
+    GameModeObject = require('./www/scripts/GameMode');
+    gameModeIndicator = new GameModeObject('8');
 
 
 
@@ -26,7 +26,8 @@ var _debug_logtoConsole = function(debug_msg) {
     }
 }
 
-
+_debug_logtoConsole('type of gameModeIndicator is ' + typeof gameModeIndicator);
+_debug_logtoConsole('gameModeIndicator.name = ' + gameModeIndicator.name);
 
 /*==============================================================
         The server functionality is realized in 4 modules:
@@ -47,6 +48,8 @@ io.sockets.on('connection', function(socket) {
     socket.on('userLogin', function(id) {
         if (users.indexOf(id) > -1) {
             socket.emit('nickExisted');
+        } else if (users.length >= gameModeIndicator.numberofPlayer()) {
+            socket.emit('roomFull');
         } else {
             socket.userIndex = users.length;// I wonder if .userIndex will be used in anyway, seems not
             socket.username = id;
@@ -107,10 +110,10 @@ io.sockets.on('connection', function(socket) {
     socket.on('amIroomhost', function() {
         _debug_logtoConsole('heard inquiry');
         if (users.indexOf(socket.username) == 0) {
-            socket.emit('youareroomhost', 1, gameModeIndicator);
+            socket.emit('youareroomhost', 1, gameModeIndicator.name);
             _debug_logtoConsole('he is the host.');
         } else {
-            socket.emit('youareroomhost', 0, gameModeIndicator);
+            socket.emit('youareroomhost', 0, gameModeIndicator.name);
             _debug_logtoConsole('he is not the host');
         }
     });
@@ -121,10 +124,10 @@ io.sockets.on('connection', function(socket) {
     });
 
     //roomhost made change to gameMode
-    socket.on('gameModeChange', function(gameMode) {
-        gameModeIndicator = gameMode;
-        socket.broadcast.emit('gameModeChanged',gameModeIndicator);
-        _debug_logtoConsole('gameMode changed to ' + gameModeIndicator);
+    socket.on('gameModeChange', function(gameMode_name) {
+        gameModeIndicator.name = gameMode_name;
+        socket.broadcast.emit('gameModeChanged',gameMode_name);
+        _debug_logtoConsole('gameMode changed to ' + gameMode_name);
     });
 
 

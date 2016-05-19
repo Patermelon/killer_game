@@ -3,5 +3,4 @@ www/scripts/killer_game_backup.js
 /node_modules/*
 npm-debug.log
 /*.env
-www/scripts/GameMode.js
 www/scripts/test.js
