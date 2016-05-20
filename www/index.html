@@ -15,8 +15,9 @@
                     <div id = "gameModePrompt" class = "float-inline">选择游戏模式: </div>
                     <div id = "gameMode" class = "float-inline">
                         <select id = "gameModeOption">
+                            <option value = '3'> 3人测试局 </option>
                             <option value = '7'> 7人局 </option>
-                            <option value = '8' selected = 'selected'> 8人局 </option>
+                            <option value = '8'> 8人局 </option>
                         </select>
                     </div>
                 </div>
@@ -27,18 +28,31 @@
                     <div id = "gameDescription"> 本模式的具体信息在这里 </div>
                 </div>
             </div>
-            <table id = "playerList" class = "newline">
-                <thead>
-                    <tr>
-                        <th> No. </th>
-                        <th> ID </th>
-                        <th> Control </th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+            <div id = "playerListWrapper">
+                <table id = "playerList" class = "newline">
+                    <thead>
+                        <tr>
+                            <th> No. </th>
+                            <th> ID </th>
+                            <th> Control </th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div>
+                <table id = "gameInstruction">
+                    <tbody>
+                        <tr>
+                            <th id = "gameInstructionPrompt"> 系统指示: </th>
+                            <th id = "gameInstructionContent"> 具体内容 </th>
+                    </tbody>
+                </table>
+            </div>
+
             <div id = "controlBtns">
                 <button id = "startBtn" > 开始游戏 </button>
+                <button id = "confirmBtn" > 确认 </button>
             </div>
         </div>
 		

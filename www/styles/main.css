@@ -18,9 +18,9 @@ html, body {
 
 /*  _Section: lobby   */
 
-#lobbyWrapper {
+.lobby {
     width: 750px;
-    height: 650px;
+    height: 750px;
     padding: 5px;
     clear: both;
     float: left;
@@ -28,6 +28,7 @@ html, body {
 
 h3#welcome {
     margin-left: 24%;
+    font-size: 22px;
 }
 
 .lobby div {
@@ -45,6 +46,10 @@ h3#welcome {
     float: left;
     position: relative;
     left: 48%;
+}
+
+#gameInfo {
+    font-size: 18px;
 }
 
 .float-inline {
@@ -85,7 +90,12 @@ h3#welcome {
     height: 50px;
 }
 
+#playerListWrapper {
+    height: 550px;
+}
+
 #playerList th, td{
+    width: 150px;
     height: 40px;
     border: 1px solid red;
     font-family: verdana;
@@ -135,6 +145,42 @@ tr:hover {
     left: 40%;
     font-weight: bold;
     font-size: 22px;
+    disabled: true;
+}
+
+#confirmBtn {
+    width: 140px;
+    height: 50px;
+    background-color: #ff9900;
+    border-radius: 8px;
+    position: relative;
+    left: 40%;
+    font-weight: bold;
+    font-size: 22px;
+    display: none;
+}
+
+#waitforStart {
+    position: relative;
+    left: 40%;
+    font-weight: bold;
+    font-size: 22px;
+}
+
+#gameInstruction {
+    position: relative;
+    left: 0;
+    font-weight: bold;
+    font-size: 22px;
+    margin: 5px;
+}
+
+#gameInstructionPrompt {
+    width: 150px;
+}
+
+#gameInstructionContent {
+   width: 450px;
 }
 
 /*  _Section: chat    */

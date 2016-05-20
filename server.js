@@ -13,8 +13,9 @@ server.listen(process.env.PORT || 8888);
 var users = [];              // the list of users' id
     roomhostExits = 0;       // By default, there is no roomhost
     GameModeObject = require('./www/scripts/GameMode');
-    gameModeIndicator = new GameModeObject('8');
-
+    gameModeIndicator = new GameModeObject('3');
+    playerList = [];         //playerList stores the player info needed for gameplay
+    Game_core = require('./www/scripts/Game_core');
 
 
 /*  a simple function allowing us to toggle on/off debug messages to console.   */
@@ -26,8 +27,7 @@ var _debug_logtoConsole = function(debug_msg) {
     }
 }
 
-_debug_logtoConsole('type of gameModeIndicator is ' + typeof gameModeIndicator);
-_debug_logtoConsole('gameModeIndicator.name = ' + gameModeIndicator.name);
+
 
 /*==============================================================
         The server functionality is realized in 4 modules:
@@ -43,7 +43,7 @@ io.sockets.on('connection', function(socket) {
     
 /*  _Module: LOGIN/OUT  */
 
-
+_debug_logtoConsole('gameModeIndicator.name = ' + gameModeIndicator.name);
     //new user login
     socket.on('userLogin', function(id) {
         if (users.indexOf(id) > -1) {
@@ -51,7 +51,7 @@ io.sockets.on('connection', function(socket) {
         } else if (users.length >= gameModeIndicator.numberofPlayer()) {
             socket.emit('roomFull');
         } else {
-            socket.userIndex = users.length;// I wonder if .userIndex will be used in anyway, seems not
+            //socket.userIndex = users.length;// I wonder if .userIndex will be used in anyway, seems not
             socket.username = id;
             users.push(id);
             socket.emit('loginSuccess',id); 
@@ -68,7 +68,7 @@ io.sockets.on('connection', function(socket) {
 
     //user leaves
     socket.on('disconnect', function() {
-        _debug_logtoConsole(users);
+        _debug_logtoConsole('current users are: '+ users);
         
         var leavinguserIndex = users.indexOf(socket.username);
         if (leavinguserIndex > -1) {
@@ -108,19 +108,20 @@ io.sockets.on('connection', function(socket) {
 
     //user's inquiry about the roomhost
     socket.on('amIroomhost', function() {
-        _debug_logtoConsole('heard inquiry');
+        //gameModeIndicator.name = '8';
+        _debug_logtoConsole('heard inquiry, gamemode = ' + gameModeIndicator.name);
         if (users.indexOf(socket.username) == 0) {
             socket.emit('youareroomhost', 1, gameModeIndicator.name);
-            _debug_logtoConsole('he is the host.');
+            _debug_logtoConsole('he is the host');
         } else {
             socket.emit('youareroomhost', 0, gameModeIndicator.name);
             _debug_logtoConsole('he is not the host');
         }
     });
 
-    //user asking for playerList
-    socket.on('pullplayerList', function() {
-        socket.emit('sendplayerList', users);
+    //user asking for userList
+    socket.on('pulluserList', function() {
+        socket.emit('senduserList', users);
     });
 
     //roomhost made change to gameMode
@@ -134,13 +135,47 @@ io.sockets.on('connection', function(socket) {
 
 /*  _Module: GAME_CORE  */    
 
+    socket.on('gameStart', function() {
+        playerList = Game_core.playerListInit(users, gameModeIndicator);
+        socket.broadcast.emit('gameStarted',users);
+        socket.emit('gameStarted',users);
+    });
 
+    socket.on('pullInstruction', function() {
+        var userIndex = users.indexOf(socket.username);
+            userRole = playerList[userIndex].role;
+            teammates = [];
+        
+        teammates = Game_core.findTeammates(gameModeIndicator,playerList, userIndex);
 
+        socket.emit('sendInstruction', playerList[userIndex].role, teammates);
 
+        switch (userRole) { //don't forget to unsubscribe when dead or game end
+            case 1:
+                socket.join('cops');
+                break;
+            case 2:
+                socket.join('killers');
+                break;
+            default :
+        }
+    });
 
-
-
-
+    socket.on('pickTarget', function(targetIndex, myRole) {
+        var userIndex = users.indexOf(socket.username);
+        switch (myRole) {
+            case 1:
+                io.to('cops').emit('teammates_target', targetIndex, userIndex, users);
+                _debug_logtoConsole(users);
+                break;
+            case 2:
+                io.to('killers').emit('teammates_target', targetIndex, userIndex, users);
+                break;
+            default :
+                socket.emit('teammates_target', targetIndex, userIndex, users);
+                break;
+        }
+    });
 
 
 
@@ -151,3 +186,4 @@ io.sockets.on('connection', function(socket) {
 
 
 });
+
