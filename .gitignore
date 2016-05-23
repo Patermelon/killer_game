@@ -4,3 +4,4 @@ www/scripts/killer_game_backup.js
 npm-debug.log
 /*.env
 www/scripts/test.js
+www/scripts/entrance.js

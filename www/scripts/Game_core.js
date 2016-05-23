@@ -7,8 +7,8 @@ var Player = function(playerId) {
 };
 
 // method of Player
-Player.prototype.kill = function(playerId) {
-    // body...
+Player.prototype.kill = function() {
+    this.isAlive = 0;
 };
 
 
@@ -42,7 +42,7 @@ function playerListInit(users, gameModeIndicator) {
 	}
 
 	indexArray = indexArray.shuffle();
-	console.log(playerList);
+	//console.log(playerList);
 
 	switch (gameModeIndicator.name) {
 		case '3' :
@@ -71,7 +71,7 @@ function playerListInit(users, gameModeIndicator) {
 			return playerList;
 		default :
 			return playerList;
-	console.log(playerList);
+	//console.log(playerList);
 	}
 }
 
@@ -90,10 +90,71 @@ function findTeammates(gameModeIndicator, playerList, myIndex) {
 		}
 }
 
-exports.Player = Player;
+function whoisAlive(playerList) {
+	var theLiving = [];
+
+	for (var i = 0; i < playerList.length; i++) {
+		if (playerList[i].isAlive == 1) {
+			theLiving.push(i);
+		}
+	}
+	return theLiving;
+}
+
+function checkWin(gameModeIndicator,playerList) {
+	//0 undertermined
+	//1 cops
+	//2 killer
+	//3 tie
+
+	var win_flag = 0;
+		copsRemain = 0;
+		killersRemain = 0;
+		civilianRemain = 0;
+
+	for (var i = 0; i < playerList.length; i++) {
+		if (playerList[i].isAlive == 1) {
+			switch (playerList[i].role) {
+				case 0:
+					civilianRemain++;
+					break;
+				case 1:
+					copsRemain++;
+					break;
+				case 2:
+					killersRemain++;
+					break;
+				default :
+			}
+		}
+	}
+
+	switch (gameModeIndicator) {
+		default :
+			if (killersRemain == 0) {
+				if (copsRemain == 0 || civilianRemain == 0) {
+					win_flag = 3;
+				} else {
+					win_flag = 1;
+				}
+			} else {
+				if (copsRemain == 0 || civilianRemain == 0) {
+					win_flag = 2;
+				} else {
+					win_flag = 0;
+				}
+			}
+	}
+	return win_flag;
+}
+
+
+
+module.exports.Player = Player;
 exports.playerListInit = playerListInit;
 exports.findTeammates = findTeammates;
-
+exports.whoisAlive = whoisAlive;
+exports.checkWin = checkWin;
 
 
 

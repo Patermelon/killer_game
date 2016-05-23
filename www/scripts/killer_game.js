@@ -19,8 +19,11 @@ var Lobby = function() {
     var flag_imroomhost = 0;
         myusername = '';
         users_local = [];
+        aliveIndex = [];
         gameMode = new GameMode();
         myRole = '';
+        myTarget = -1;
+        myAmmo = 1;
 }//Lobby constructor
 
 
@@ -50,13 +53,13 @@ Lobby.prototype = {
 			document.getElementById('loginWrapper').style.display = 'none';
 			document.getElementById('messageInput').focus();
             myusername = id;
-            that.systemLog('&quot;' + id + '&quot; 加入了房间');
+            that.systemLog('加入了房间', id);
             that.socket.emit('amIroomhost');
 		});
 
 		this.socket.on('system',function(id, action){
-			var msg = '&quot;' + id + '&quot;' + (action == 'login' ? ' 加入了房间' : ' 退出了房间');
-            that.systemLog(msg);
+			var msg = (action == 'login' ? ' 加入了房间' : ' 退出了房间');
+            that.systemLog(msg, id);
             that.socket.emit('amIroomhost');
 		});
 
@@ -97,52 +100,144 @@ Lobby.prototype = {
         this.socket.on('gameModeChanged', function(gameModeIndicator_name) {
             gameMode.name = gameModeIndicator_name;
             that.systemLog('游戏模式变更为：' + gameMode.title());
-            that._showgameInfo(gameMode);
-            that.lobby_showuserList(users);
+            that.lobby_showgameInfo(gameMode);
+            that.lobby_showuserList(users_local);
         });
 
         document.getElementById('gameModeOption').addEventListener('change', function() {
             var option_name = document.getElementById('gameModeOption');
             gameMode.name = option_name.value;
             that.socket.emit('gameModeChange', gameMode.name);
-            that._displayDescription(gameMode);
         },false);
 
         document.getElementById('startBtn').addEventListener('click', function() {
-            that.socket.emit('gameStart');
+            if (users_local.length > gameMode.numberofPlayer()) {
+                var preceed = window.alert('房间现有人数大于游戏人数，多余的人会被自动踢出房间，仍然进行游戏吗？');
+                if (preceed == 1) {
+                    that.socket.emit('gameStart');    
+                }
+            }
         },false);
+
+        this.socket.on('gotKicked', function(userIndex) {
+            console.log('I got kicked! OMG');
+            if (users_local.indexOf(myusername) == userIndex) {
+                window.alert('你被踢出了房间');
+                window.location.reload();
+            }
+        });
 
 
 // gameplay
 
         this.socket.on('gameStarted', function(users) {           
+            document.getElementById('historyMsg').innerHTML = '';
             that.systemLog('游戏开始了！');
+            
+            //initializing variables
             users_local = users;
+            that.gameplay_aliveIndex_init();
+            myRole = -1;
+            myAmmo = 1;
+            
+            //preparing game board
             that.gameplay_showgameInfo(gameMode);
-            that.gameplay_showuserList(users);
+            that.gameplay_showuserList_night(users);
+            
+            //ask for instruction from server
             that.socket.emit('pullInstruction');
         });
 
         this.socket.on('sendInstruction', function(role, teammates) {    
             myRole = role;
-            document.getElementById('startBtn').style.display = 'none';
-            document.getElementById('confirmBtn').style.display = 'block';
-            document.getElementById('gameInstructionContent').innerHTML = gameMode.roleInstruction(role);
             
             if (teammates.length > 0) {
-                var teammatesInstruction = document.createElement('p');
-                teammatesInstruction.innerHTML = '你的队友是：' +  teammates;
+                var teammatesInfo = document.createElement('p');
+                teammatesInfo.innerHTML = '你的队友是：' +  teammates;
+                document.getElementById('gameInstructionContent').appendChild(teammatesInfo);
             }
 
+            that.gameplay_showuserList_night(users_local);
             that.gameplay_addtargetCol(users_local);
         });
 
-        this.socket.on('teammates_target', function(targetIndex, teammatesIndex, users) {
+        this.socket.on('teammates_target', function(targetIndex, teammatesIndex) {
             cell_target = document.getElementById('target'+ teammatesIndex);
-            console.log(users);
-            cell_target.innerHTML = users[targetIndex];
+            console.log(users_local);
+            cell_target.innerHTML = users_local[targetIndex];
         });
 
+        document.getElementById('confirmBtn').addEventListener('click', function() {
+            console.log('confirm button is pushed, myTarget= '+ myTarget);
+
+
+            if (myTarget == -1 && myRole != 4) {
+                window.alert('必须选择一个目标！');
+                console.log('myRole = ' + myRole);
+            } else if ( myTarget != -1 && myRole == 4 && myAmmo == 0) {
+                window.alert('你已经开过枪了！');
+                console.log('2');
+            }
+            else {
+                that.socket.emit('confirmTarget', myTarget);
+                console.log('submitted the myTarget:' + myTarget);
+            } 
+        });
+
+        this.socket.on('waitforalltoRespond', function() {
+            document.getElementById('confirmBtn').disabled = true;
+            document.getElementById('gameInstructionContent').innerHTML = '等待其他人完成动作...';
+        });
+
+        this.socket.on('killerConfirm', function(isKiller, cops_target_name) {
+            console.log("isKiller = " + isKiller);
+            if (isKiller == 1) {
+                that.systemLog(cops_target_name +'是杀手');
+            } else {
+                that.systemLog(cops_target_name +'不是是杀手');
+            }
+        });
+
+        this.socket.on('disagreement', function(mutiTarget) {
+            that.systemLog('目标：（' + mutiTarget + '），不一致，行动作废。');
+        });
+
+        this.socket.on('killConfirm', function(victim_name) {
+            that.systemLog( '确认试图谋杀：'+ victim_name );
+        });
+
+        this.socket.on('snipeDone', function() {
+            myAmmo = 0;
+        });
+
+        this.socket.on('deathReport', function(deathpool) {
+            document.getElementById('gameInstructionContent').innerHTML = '昨晚死亡的是：'+ deathpool;
+            deathpool.forEach(function(i) {
+                aliveIndex[i] = 0;
+            });
+            that.gameplay_showuserList_day(users_local);
+        });
+
+        this.socket.on('win', function(win_flag, playerList) {
+            switch (win_flag) {
+                case 1:
+                    window.alert('正义胜利');
+                    break;
+                case 2:
+                    window.alert('杀手胜利');
+                    break;
+                case 3:
+                    window.alert('平局');
+                    break;
+                default :
+            }
+            that.endgame_showuserList(playerList);
+        });
+
+        document.getElementById('restartBtn').addEventListener('click',function() {
+            that.socket.emit('amIroomhost');
+            document.getElementById('historyMsg').innerHTML = '';
+        },false);
 
 //  chat handling
 
@@ -180,10 +275,15 @@ Lobby.prototype = {
 
 //  functions used in Lobby.init()
 
-Lobby.prototype.systemLog = function(log) {
+Lobby.prototype.systemLog = function(log, id) {
         var logmsg = document.createElement('p');
         container = document.getElementById('historyMsg');
-        logmsg.innerHTML = 'SYSTEM: ' + log;
+        if (typeof id == 'undefined') {
+            logmsg.innerHTML = 'SYSTEM: ' + log;
+        } else {
+            logmsg.innerHTML = 'SYSTEM: ' + '<span class = \'name\' >' + id + '</span> ' + log;
+        }
+        
         logmsg.style.color = '#6699ff';
         container.appendChild(logmsg);
         container.scrollTop = container.scrollHeight;
@@ -225,11 +325,17 @@ Lobby.prototype.lobby_showgameInfo = function(gameMode) {
 
 Lobby.prototype.lobby_showuserList = function(users) {
     var table = document.getElementById('playerList');
-    var old_tableBody = table.childNodes[3];
+    var old_tableBody = table.children[1];
     var new_tableBody = document.createElement('tbody');
+    var theadrow = table.children[0].children[0];
+    if (typeof theadrow.children[3] != 'undefined') {
+        theadrow.removeChild(theadrow.children[3]);
+    }
 
+    that = this;
     if (flag_imroomhost == 1) {
         for (var i = 0; i < users.length; i++) {
+            (function(i) { 
                 var row = document.createElement('tr');
                 
                 // <td width = "150px"> i+1 </td>
@@ -243,23 +349,23 @@ Lobby.prototype.lobby_showuserList = function(users) {
                 row.appendChild(cell_id);
 
                 // <td width = "150px"> <button id = "kicki"> kick </button> </td>
-                var cell_kickBtn = document.createElement('td');
-                var kickBtn = document.createElement('button');
-                kickBtn.innerHTML = 'kick';
-                kickBtn.setAttribute("id","kick" + i);
-                kickBtn.setAttribute("class","kickBtn");
-                cell_kickBtn.appendChild(kickBtn);
-                row.appendChild(cell_kickBtn);
+                var cell_pickBtn = document.createElement('td');
+                var pickBtn = document.createElement('button');
+                pickBtn.innerHTML = 'kick';
+                pickBtn.setAttribute("id","kick" + i);
+                pickBtn.setAttribute("class","pickBtn");
+                cell_pickBtn.appendChild(pickBtn);
+                row.appendChild(cell_pickBtn);
 
-                kickBtn.addEventListener('click', function() {
-                    // added the kick functionality later, be nice!
+                pickBtn.addEventListener('click', function() {
+                   that.socket.emit('kickPlayer', i);
                 },false);
 
                 new_tableBody.appendChild(row);
+            }(i));
         }
         table.replaceChild(new_tableBody,old_tableBody);
-
-        
+       
         if (users.length < gameMode.numberofPlayer()) {
             document.getElementById('startBtn').disabled = true;
             document.getElementById('gameInstructionContent').innerHTML = '人数未达到要求';
@@ -267,7 +373,7 @@ Lobby.prototype.lobby_showuserList = function(users) {
             document.getElementById('startBtn').disabled = false;
             document.getElementById('gameInstructionContent').innerHTML = '人数已达到要求';
         }
-        document.getElementById('startBtn').style.display = 'block';
+        document.getElementById('startBtn').className = 'mainBtnOn';
 
     } else {
         for (var i = 0; i < users.length; i++) {
@@ -286,25 +392,27 @@ Lobby.prototype.lobby_showuserList = function(users) {
                 row.appendChild(cell_id);
 
                 // <td width = "150px"> <button id = "kicki"> kick </button> </td>
-                var cell_kickBtn = document.createElement('td');
-                cell_kickBtn.setAttribute("width","150px");
-                cell_kickBtn.appendChild(document.createTextNode('N/A'));
-                row.appendChild(cell_kickBtn);
+                var cell_pickBtn = document.createElement('td');
+                cell_pickBtn.setAttribute("width","150px");
+                cell_pickBtn.appendChild(document.createTextNode('N/A'));
+                row.appendChild(cell_pickBtn);
 
                 new_tableBody.appendChild(row);
         }
         table.replaceChild(new_tableBody,old_tableBody);
-        //table.children[1].children[0].children[2].innerHTML = '房主';
-        console.log(table.children[1].children[0]);
+        table.children[1].children[0].children[2].innerHTML = '房主';
+        console.log(table.children[1].children[0].children[2]);
         
         if (users.length < gameMode.numberofPlayer()) {
             document.getElementById('gameInstructionContent').innerHTML = '人数未达到要求';
         } else {
             document.getElementById('gameInstructionContent').innerHTML = '等待房主开始游戏';
         }
-        document.getElementById('startBtn').style.display = 'none';
+        document.getElementById('startBtn').className = 'mainBtnOff';
     }
-
+    document.getElementById('confirmBtn').className = 'mainBtnOff';
+    document.getElementById('restartBtn').className = 'mainBtnOff';
+    document.getElementById('voteBtn').className = 'mainBtnOff';
 }
 
 Lobby.prototype._debug_feedback = function(log) {
@@ -318,7 +426,7 @@ Lobby.prototype._debug_feedback = function(log) {
 
 
 /*=======================================================================
-    the Gameplay class
+    the Gameplay module
 
         it handles the gameplay functionality on the client/browser side.
 
@@ -337,7 +445,7 @@ Lobby.prototype.gameplay_showgameInfo = function(gameMode) {
     this._displayDescription(gameMode);
 }
 
-Lobby.prototype.gameplay_showuserList = function(users) {
+Lobby.prototype.gameplay_showuserList_night = function(users) {
     var table = document.getElementById('playerList');
         old_tableBody = table.children[1];
         new_tableBody = document.createElement('tbody');
@@ -347,10 +455,14 @@ Lobby.prototype.gameplay_showuserList = function(users) {
         (function(i) {
             var row = document.createElement('tr');
         
-            // <td width = "150px"> i+1 </td>
-            var cell_number = document.createElement('td');
-            cell_number.appendChild(document.createTextNode(i+1));
+            if (aliveIndex[i] == 1) {
+                var cell_number = document.createElement('td');
+                cell_number.appendChild(document.createTextNode(i+1));
+            } else {
+                cell_number.appendChild(document.createTextNode('X'));
+            }
             row.appendChild(cell_number);
+
             
             // <td width = "150px"> users[i] </td>
             var cell_id = document.createElement('td');
@@ -358,18 +470,72 @@ Lobby.prototype.gameplay_showuserList = function(users) {
             row.appendChild(cell_id);
 
             // <td width = "150px"> <button id = "kicki"> kick </button> </td>
-            var cell_kickBtn = document.createElement('td');
-            var kickBtn = document.createElement('button');
-            kickBtn.innerHTML = '选择此人';
-            kickBtn.setAttribute("id","pick" + i);
-            kickBtn.setAttribute("class","kickBtn");
-            cell_kickBtn.appendChild(kickBtn);
-            row.appendChild(cell_kickBtn);
+            var cell_pickBtn = document.createElement('td');
+            var pickBtn = document.createElement('button');
+            pickBtn.innerHTML = '选择此人';
+            pickBtn.setAttribute("id","pick" + i);
+            pickBtn.setAttribute("class","pickBtn");
+            cell_pickBtn.appendChild(pickBtn);
+            row.appendChild(cell_pickBtn);
 
-            kickBtn.addEventListener('click', function() {
+            pickBtn.addEventListener('click', function() {
                 console.log('i = '+ i );
-                that.systemLog('picked ' + (i+1));
-                that.socket.emit('pickTarget', i, myRole);   
+                that.systemLog('你选择了 ' + (i+1) + '号');
+                that.socket.emit('pickTarget', i, myRole);
+                myTarget = i;
+            },false);
+
+            new_tableBody.appendChild(row);
+        }(i));
+    }
+
+    document.getElementById('gameInstructionContent').innerHTML = gameMode.roleInstruction(myRole);
+        
+    table.replaceChild(new_tableBody,old_tableBody);
+    document.getElementById('startBtn').className = 'mainBtnOff';
+    document.getElementById('restartBtn').className = 'mainBtnOff';
+    document.getElementById('voteBtn').className = 'mainBtnOff';
+    document.getElementById('confirmBtn').className = 'mainBtnOn';
+}
+
+Lobby.prototype.gameplay_showuserList_day = function(users) {
+    var table = document.getElementById('playerList');
+        old_tableBody = table.children[1];
+        new_tableBody = document.createElement('tbody');
+        that = this;
+
+    for (var i = 0; i < users.length; i++) {
+        (function(i) {
+            var row = document.createElement('tr');
+        
+            if (aliveIndex[i] == 1) {
+                var cell_number = document.createElement('td');
+                cell_number.appendChild(document.createTextNode(i+1));
+            } else {
+                cell_number.appendChild(document.createTextNode('X'));
+            }
+            row.appendChild(cell_number);
+
+            
+            // <td width = "150px"> users[i] </td>
+            var cell_id = document.createElement('td');
+            cell_id.appendChild(document.createTextNode(users[i]));
+            row.appendChild(cell_id);
+
+            // <td width = "150px"> <button id = "kicki"> kick </button> </td>
+            var cell_pickBtn = document.createElement('td');
+            var pickBtn = document.createElement('button');
+            pickBtn.innerHTML = '选择此人';
+            pickBtn.setAttribute("id","pick" + i);
+            pickBtn.setAttribute("class","pickBtn");
+            cell_pickBtn.appendChild(pickBtn);
+            row.appendChild(cell_pickBtn);
+
+            pickBtn.addEventListener('click', function() {
+                console.log('i = '+ i );
+                that.systemLog('你选择了 ' + (i+1) + '号');
+                that.socket.emit('pickTarget', i, myRole);
+                myTarget = i;
             },false);
 
             new_tableBody.appendChild(row);
@@ -377,9 +543,11 @@ Lobby.prototype.gameplay_showuserList = function(users) {
     }
         
     table.replaceChild(new_tableBody,old_tableBody);
-
+    document.getElementById('startBtn').className = 'mainBtnOff';
+    document.getElementById('restartBtn').className = 'mainBtnOff';
+    document.getElementById('voteBtn').className = 'mainBtnOn';
+    document.getElementById('confirmBtn').className = 'mainBtnOff';
 }
-
             
 Lobby.prototype.gameplay_addtargetCol = function(users) {
 
@@ -400,9 +568,60 @@ Lobby.prototype.gameplay_addtargetCol = function(users) {
     }
 }
 
+Lobby.prototype.gameplay_aliveIndex_init = function() {
+    for (var i = 0; i < users_local.length; i++) {
+        aliveIndex.push(1);
+    }
+}
 
+Lobby.prototype.endgame_showuserList = function(playerList) {
+    var table = document.getElementById('playerList');
+        old_tableBody = table.children[1];
+        new_tableBody = document.createElement('tbody');
+        that = this;
 
+        table.children[0].children[0].children[2].innerHTML = '身份';
+        var theadrow = table.children[0].children[0];
+        if (typeof theadrow.children[3] != 'undefined') {
+            theadrow.removeChild(theadrow.children[3]);
+        }
 
+    for (var i = 0; i < playerList.length; i++) {
+
+        var row = document.createElement('tr');
+    
+        var cell_number = document.createElement('td');
+        if (playerList[i].isAlive == 1) {
+            cell_number.appendChild(document.createTextNode(i+1));
+        } else {
+            cell_number.appendChild(document.createTextNode('X'));
+        }
+        row.appendChild(cell_number);
+
+        
+        // <td width = "150px"> users[i] </td>
+        var cell_id = document.createElement('td');
+        cell_id.appendChild(document.createTextNode(playerList[i].name));
+        row.appendChild(cell_id);
+
+        // <td width = "150px"> <button id = "kicki"> kick </button> </td>
+        var cell_role = document.createElement('td');
+        cell_role.appendChild(document.createTextNode(gameMode.roleName(playerList[i].role)));
+        row.appendChild(cell_role);
+
+        new_tableBody.appendChild(row);
+
+    }
+        
+    table.replaceChild(new_tableBody,old_tableBody);
+
+    document.getElementById('gameInstructionContent').innerHTML = '确认游戏结果后返回准备界面';
+    
+    document.getElementById('restartBtn').className = 'mainBtnOn';
+    document.getElementById('startBtn').className = 'mainBtnOff';
+    document.getElementById('voteBtn').className = 'mainBtnOff';
+    document.getElementById('confirmBtn').className = 'mainBtnOff';
+}
 
 
 
