@@ -112,10 +112,9 @@ Lobby.prototype = {
 
         document.getElementById('startBtn').addEventListener('click', function() {
             if (users_local.length > gameMode.numberofPlayer()) {
-                var preceed = window.alert('房间现有人数大于游戏人数，多余的人会被自动踢出房间，仍然进行游戏吗？');
-                if (preceed == 1) {
-                    that.socket.emit('gameStart');    
-                }
+                var preceed = window.alert('房间现有人数大于游戏人数，请踢出部分玩家或改变游戏模式。');
+            } else {
+                that.socket.emit('gameStart');
             }
         },false);
 
@@ -142,7 +141,6 @@ Lobby.prototype = {
             
             //preparing game board
             that.gameplay_showgameInfo(gameMode);
-            that.gameplay_showuserList_night(users);
             
             //ask for instruction from server
             that.socket.emit('pullInstruction');
@@ -150,15 +148,15 @@ Lobby.prototype = {
 
         this.socket.on('sendInstruction', function(role, teammates) {    
             myRole = role;
-            
+
+            that.gameplay_showuserList_night(users_local);
+            that.gameplay_addtargetCol(users_local);
+
             if (teammates.length > 0) {
                 var teammatesInfo = document.createElement('p');
                 teammatesInfo.innerHTML = '你的队友是：' +  teammates;
                 document.getElementById('gameInstructionContent').appendChild(teammatesInfo);
             }
-
-            that.gameplay_showuserList_night(users_local);
-            that.gameplay_addtargetCol(users_local);
         });
 
         this.socket.on('teammates_target', function(targetIndex, teammatesIndex) {
@@ -183,6 +181,21 @@ Lobby.prototype = {
                 console.log('submitted the myTarget:' + myTarget);
             } 
         });
+
+        this.socket.on('teammates_target_fixed', function(targetIndex, submitterIndex) {
+            if (submitterIndex != users_local.indexOf(myusername)) {
+                cell_target = document.getElementById('target'+ submitterIndex);
+                cell_target.innerHTML += '(submitted)';
+            }
+        });
+
+        this.socket.on('target_fixed', function() {
+            for (var i = 0; i < users_local.length; i++) {
+                pickBtn = document.getElementById('pick' + i);
+                pickBtn.disabled = true;
+            }
+            document.getElementById('target'+ users_local.indexOf(myusername)).innerHTML += '(submitted)';
+        });        
 
         this.socket.on('waitforalltoRespond', function() {
             document.getElementById('confirmBtn').disabled = true;
@@ -216,6 +229,7 @@ Lobby.prototype = {
                 aliveIndex[i] = 0;
             });
             that.gameplay_showuserList_day(users_local);
+            gameplay_addtargetCol(users_local);
         });
 
         this.socket.on('win', function(win_flag, playerList) {
@@ -238,6 +252,16 @@ Lobby.prototype = {
             that.socket.emit('amIroomhost');
             document.getElementById('historyMsg').innerHTML = '';
         },false);
+
+        document.getElementById('voteBtn').addEventListener('click',function() {
+            
+            if (myTarget == -1) {
+                window.alert('必须选择一个目标！');
+            } else {
+                that.socket.emit('confirmVote', myTarget);
+                console.log('submitted the vote:' + myTarget);
+            }
+        });
 
 //  chat handling
 
@@ -308,9 +332,11 @@ Lobby.prototype._displayDescription = function(gameMode) {
 
 Lobby.prototype.lobby_showgameInfo = function(gameMode) {
     if (flag_imroomhost == 1) {
+        debugger;
         this._debug_feedback('I am host now, should display hostWrapper.');
         document.getElementById('roomhostWrapper').style.display = "block";
         document.getElementById('roomguestWrapper').style.display = "none";
+        document.getElementById('option'+gameMode.name).setAttribute('selected','selected');
     } else {
         document.getElementById('roomhostWrapper').style.display = "none";
         document.getElementById('roomguestWrapper').style.display = "block";
@@ -331,6 +357,7 @@ Lobby.prototype.lobby_showuserList = function(users) {
     if (typeof theadrow.children[3] != 'undefined') {
         theadrow.removeChild(theadrow.children[3]);
     }
+    theadrow.children[2].innerHTML = 'Ops';
 
     that = this;
     if (flag_imroomhost == 1) {
@@ -338,17 +365,14 @@ Lobby.prototype.lobby_showuserList = function(users) {
             (function(i) { 
                 var row = document.createElement('tr');
                 
-                // <td width = "150px"> i+1 </td>
                 var cell_number = document.createElement('td');
                 cell_number.appendChild(document.createTextNode(i+1));
                 row.appendChild(cell_number);
                 
-                // <td width = "150px"> users[i] </td>
                 var cell_id = document.createElement('td');
                 cell_id.appendChild(document.createTextNode(users[i]));
                 row.appendChild(cell_id);
 
-                // <td width = "150px"> <button id = "kicki"> kick </button> </td>
                 var cell_pickBtn = document.createElement('td');
                 var pickBtn = document.createElement('button');
                 pickBtn.innerHTML = 'kick';
@@ -379,19 +403,16 @@ Lobby.prototype.lobby_showuserList = function(users) {
         for (var i = 0; i < users.length; i++) {
                 var row = document.createElement('tr');
                 
-                // <td width = "150px"> i+1 </td>
                 var cell_number = document.createElement('td');
                 cell_number.setAttribute("width","150px");
                 cell_number.appendChild(document.createTextNode(i+1));
                 row.appendChild(cell_number);
                 
-                // <td width = "150px"> users[i] </td>
                 var cell_id = document.createElement('td');
                 cell_id.setAttribute("width","150px");
                 cell_id.appendChild(document.createTextNode(users[i]));
                 row.appendChild(cell_id);
 
-                // <td width = "150px"> <button id = "kicki"> kick </button> </td>
                 var cell_pickBtn = document.createElement('td');
                 cell_pickBtn.setAttribute("width","150px");
                 cell_pickBtn.appendChild(document.createTextNode('N/A'));
@@ -401,7 +422,6 @@ Lobby.prototype.lobby_showuserList = function(users) {
         }
         table.replaceChild(new_tableBody,old_tableBody);
         table.children[1].children[0].children[2].innerHTML = '房主';
-        console.log(table.children[1].children[0].children[2]);
         
         if (users.length < gameMode.numberofPlayer()) {
             document.getElementById('gameInstructionContent').innerHTML = '人数未达到要求';
@@ -463,27 +483,29 @@ Lobby.prototype.gameplay_showuserList_night = function(users) {
             }
             row.appendChild(cell_number);
 
-            
-            // <td width = "150px"> users[i] </td>
             var cell_id = document.createElement('td');
             cell_id.appendChild(document.createTextNode(users[i]));
             row.appendChild(cell_id);
 
-            // <td width = "150px"> <button id = "kicki"> kick </button> </td>
             var cell_pickBtn = document.createElement('td');
             var pickBtn = document.createElement('button');
-            pickBtn.innerHTML = '选择此人';
+            if (aliveIndex[i] == 1) {
+                pickBtn.innerHTML = '选择此人';
+
+                pickBtn.addEventListener('click', function() {
+                    console.log('i = '+ i );
+                    that.systemLog('你选择了 ' + (i+1) + ' 号');
+                    that.socket.emit('pickTarget', i, myRole);
+                    myTarget = i;
+                },false);
+            } else {
+                pickBtn.innerHTML = '已死亡';
+                pickBtn.disabled = true;  
+            }
             pickBtn.setAttribute("id","pick" + i);
             pickBtn.setAttribute("class","pickBtn");
             cell_pickBtn.appendChild(pickBtn);
             row.appendChild(cell_pickBtn);
-
-            pickBtn.addEventListener('click', function() {
-                console.log('i = '+ i );
-                that.systemLog('你选择了 ' + (i+1) + '号');
-                that.socket.emit('pickTarget', i, myRole);
-                myTarget = i;
-            },false);
 
             new_tableBody.appendChild(row);
         }(i));
@@ -507,9 +529,9 @@ Lobby.prototype.gameplay_showuserList_day = function(users) {
     for (var i = 0; i < users.length; i++) {
         (function(i) {
             var row = document.createElement('tr');
-        
+            
+            var cell_number = document.createElement('td');
             if (aliveIndex[i] == 1) {
-                var cell_number = document.createElement('td');
                 cell_number.appendChild(document.createTextNode(i+1));
             } else {
                 cell_number.appendChild(document.createTextNode('X'));
@@ -517,36 +539,41 @@ Lobby.prototype.gameplay_showuserList_day = function(users) {
             row.appendChild(cell_number);
 
             
-            // <td width = "150px"> users[i] </td>
             var cell_id = document.createElement('td');
             cell_id.appendChild(document.createTextNode(users[i]));
             row.appendChild(cell_id);
 
-            // <td width = "150px"> <button id = "kicki"> kick </button> </td>
             var cell_pickBtn = document.createElement('td');
             var pickBtn = document.createElement('button');
-            pickBtn.innerHTML = '选择此人';
+            if (aliveIndex[i] == 1) {
+                pickBtn.innerHTML = '选择此人';
+
+                pickBtn.addEventListener('click', function() {
+                    console.log('i = '+ i );
+                    that.systemLog('你选择了 ' + (i+1) + ' 号');
+                    that.socket.emit('pickTarget', i, myRole);
+                    myTarget = i;
+                },false);
+            } else {
+                pickBtn.innerHTML = '已死亡';
+                pickBtn.disabled = true;
+            }
             pickBtn.setAttribute("id","pick" + i);
             pickBtn.setAttribute("class","pickBtn");
             cell_pickBtn.appendChild(pickBtn);
             row.appendChild(cell_pickBtn);
 
-            pickBtn.addEventListener('click', function() {
-                console.log('i = '+ i );
-                that.systemLog('你选择了 ' + (i+1) + '号');
-                that.socket.emit('pickTarget', i, myRole);
-                myTarget = i;
-            },false);
-
             new_tableBody.appendChild(row);
         }(i));
-    }
-        
+    }   
     table.replaceChild(new_tableBody,old_tableBody);
+
     document.getElementById('startBtn').className = 'mainBtnOff';
     document.getElementById('restartBtn').className = 'mainBtnOff';
     document.getElementById('voteBtn').className = 'mainBtnOn';
     document.getElementById('confirmBtn').className = 'mainBtnOff';
+
+    myTarget = -1;
 }
             
 Lobby.prototype.gameplay_addtargetCol = function(users) {

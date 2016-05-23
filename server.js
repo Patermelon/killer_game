@@ -51,7 +51,7 @@ io.sockets.on('connection', function(socket) {
     
 /*  _Module: LOGIN/OUT  */
 
-_debug_logtoConsole('gameModeIndicator.name = ' + gameModeIndicator.name);
+
     //new user login
     socket.on('userLogin', function(id) {
         if (users.indexOf(id) > -1) {
@@ -118,13 +118,10 @@ _debug_logtoConsole('gameModeIndicator.name = ' + gameModeIndicator.name);
     //user's inquiry about the roomhost
     socket.on('amIroomhost', function() {
         //gameModeIndicator.name = '8';
-        _debug_logtoConsole('heard inquiry, gamemode = ' + gameModeIndicator.name);
         if (users.indexOf(socket.username) == 0) {
             socket.emit('youareroomhost', 1, gameModeIndicator.name);
-            _debug_logtoConsole('he is the host');
         } else {
             socket.emit('youareroomhost', 0, gameModeIndicator.name);
-            _debug_logtoConsole('he is not the host');
         }
     });
 
@@ -151,8 +148,18 @@ _debug_logtoConsole('gameModeIndicator.name = ' + gameModeIndicator.name);
 /*  _Module: GAME_CORE  */    
 
     socket.on('gameStart', function() {
+        //initializing game
         playerList = Game_core.playerListInit(users, gameModeIndicator);
+        cops_target = [];
+        killers_target = [];
+        doctor_target = -1;
+        sniper_target = -1;
+        sniper_ammo = 1;
+        response_count = 0;
+        
+        console.log('game instance initialized,');
         console.log(playerList);
+
         socket.broadcast.emit('gameStarted',users);
         socket.emit('gameStarted',users);
     });
@@ -201,7 +208,7 @@ _debug_logtoConsole('gameModeIndicator.name = ' + gameModeIndicator.name);
             myRole = playerList[userIndex].role;
 
         _debug_logtoConsole('this response is from '+ socket.username);
-        _debug_logtoConsole('the target is ' + myTarget);
+        _debug_logtoConsole('the target is ' + playerList[myTarget].name);
 
 
         switch (myRole) {
@@ -209,11 +216,13 @@ _debug_logtoConsole('gameModeIndicator.name = ' + gameModeIndicator.name);
                 if (cops_target.indexOf(myTarget) == -1) {
                     cops_target.push(myTarget);
                 }
+                io.to('cops').emit('teammates_target_fixed', myTarget, userIndex);
                 break;
             case 2:
                 if (killers_target.indexOf(myTarget) == -1) {
                     killers_target.push(myTarget);
                 }
+                io.to('killers').emit('teammates_target_fixed', myTarget, userIndex);
                 break;
             case 3:
                 doctor_target = myTarget;
@@ -228,6 +237,7 @@ _debug_logtoConsole('gameModeIndicator.name = ' + gameModeIndicator.name);
                 break;
         }
 
+        socket.emit('target_fixed');
 
         response_count++;
         _debug_logtoConsole('response_count = ' + response_count);
@@ -239,6 +249,7 @@ _debug_logtoConsole('gameModeIndicator.name = ' + gameModeIndicator.name);
         if (response_count < users.length) {
             socket.emit('waitforalltoRespond');
         } else {
+            socket.emit('waitforalltoRespond');
             response_count = 0;
             nightSettlement(socket);
         }
@@ -307,6 +318,8 @@ function nightSettlement(socket) {
 
     cops_target = [];
     killers_target = [];
+    doctor_target = -1;
+    sniper_target = -1;
 
     var win_flag = Game_core.checkWin(gameModeIndicator,playerList);
 
