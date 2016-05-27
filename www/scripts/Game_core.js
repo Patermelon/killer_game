@@ -9,6 +9,7 @@ var Player = function(playerId) {
 // method of Player
 Player.prototype.kill = function() {
     this.isAlive = 0;
+    numberofplayerAlive--;
 };
 
 
@@ -129,7 +130,7 @@ function checkWin(gameModeIndicator,playerList) {
 		}
 	}
 
-	switch (gameModeIndicator) {
+	switch (gameModeIndicator.name) {
 		default :
 			if (killersRemain == 0) {
 				if (copsRemain == 0 || civilianRemain == 0) {
@@ -148,13 +149,40 @@ function checkWin(gameModeIndicator,playerList) {
 	return win_flag;
 }
 
+function countVote(votes) {
+	var result = [];
+	var count = [];
+		numberofPlayer = votes.length;
 
+	for (var i = 0; i < votes.length; i++) {
+		count[i] = 0;
+	}
+	console.log(count);
+
+	for (var i = 0; i < numberofPlayer; i++) {	
+		if (votes[i]!= -1) {
+			count[votes[i]]++;
+		}
+	}
+	console.log(count);
+
+	max = Math.max.apply(Math,count);
+	index = count.indexOf(max);
+
+	while(index != -1){
+		result.push(index);
+		index = count.indexOf(max, index+1);
+	}
+
+	return result;
+}
 
 module.exports.Player = Player;
 exports.playerListInit = playerListInit;
 exports.findTeammates = findTeammates;
 exports.whoisAlive = whoisAlive;
 exports.checkWin = checkWin;
+exports.countVote = countVote;
 
 
 

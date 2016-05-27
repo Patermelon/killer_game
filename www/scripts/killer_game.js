@@ -178,7 +178,7 @@ Lobby.prototype = {
             }
             else {
                 that.socket.emit('confirmTarget', myTarget);
-                console.log('submitted the myTarget:' + myTarget);
+                that.systemLog('你选择了 ' + (myTarget+1) + '号');
             } 
         });
 
@@ -224,12 +224,17 @@ Lobby.prototype = {
         });
 
         this.socket.on('deathReport', function(deathpool) {
-            document.getElementById('gameInstructionContent').innerHTML = '昨晚死亡的是：'+ deathpool;
+            deathMsg = '昨晚死亡的是：';
+            deathpool.forEach(function(i) {
+                deathMsg += (i+1) + '号 ';
+            });
+            document.getElementById('gameInstructionContent').innerHTML = '请辩论后投票';
+            that.systemLog(deathMsg);
             deathpool.forEach(function(i) {
                 aliveIndex[i] = 0;
             });
             that.gameplay_showuserList_day(users_local);
-            gameplay_addtargetCol(users_local);
+            that.gameplay_addtargetCol(users_local);
         });
 
         this.socket.on('win', function(win_flag, playerList) {
@@ -258,9 +263,40 @@ Lobby.prototype = {
             if (myTarget == -1) {
                 window.alert('必须选择一个目标！');
             } else {
+                that.systemLog('你选择了 ' + (myTarget+1) + '号');
                 that.socket.emit('confirmVote', myTarget);
                 console.log('submitted the vote:' + myTarget);
             }
+        });
+
+        this.socket.on('waitforotherVotes', function() {
+            document.getElementById('voteBtn').disabled = true;
+            document.getElementById('gameInstructionContent').innerHTML = '等待其他人投票...'; 
+        });
+
+        this.socket.on('voteResult', function(votes) {
+            that.gameplay_showvoteResult(votes);
+            document.getElementById('gameInstructionContent').innerHTML = '请确认投票结果';
+        });
+
+        this.socket.on('waitforothervoteResult', function() {
+            document.getElementById('sawvoteresultBtn').disabled = true;
+            document.getElementById('gameInstructionContent').innerHTML = '等待其他人确认投票结果...'; 
+        });
+
+        this.socket.on('revote', function(convict) {
+            that.gameplay_showRevote(convict, users_local);
+            document.getElementById('gameInstructionContent').innerHTML = '平票，辩论后再次投票'; 
+        });
+
+        this.socket.on('enterNight', function(convict) {
+            convict.forEach(function(i) {
+                that.systemLog(users_local[i]+ ' 被票死了。');
+            });
+            convict.forEach(function(i) {
+                aliveIndex[i] = 0;
+            });
+            that.socket.emit('pullInstruction');
         });
 
 //  chat handling
@@ -332,7 +368,6 @@ Lobby.prototype._displayDescription = function(gameMode) {
 
 Lobby.prototype.lobby_showgameInfo = function(gameMode) {
     if (flag_imroomhost == 1) {
-        debugger;
         this._debug_feedback('I am host now, should display hostWrapper.');
         document.getElementById('roomhostWrapper').style.display = "block";
         document.getElementById('roomguestWrapper').style.display = "none";
@@ -433,6 +468,7 @@ Lobby.prototype.lobby_showuserList = function(users) {
     document.getElementById('confirmBtn').className = 'mainBtnOff';
     document.getElementById('restartBtn').className = 'mainBtnOff';
     document.getElementById('voteBtn').className = 'mainBtnOff';
+    document.getElementById('sawvoteresultBtn').className = 'mainBtnOff';
 }
 
 Lobby.prototype._debug_feedback = function(log) {
@@ -471,12 +507,17 @@ Lobby.prototype.gameplay_showuserList_night = function(users) {
         new_tableBody = document.createElement('tbody');
         that = this;
 
+    var theadrow = table.children[0].children[0];
+        if (typeof theadrow.children[3] != 'undefined') {
+           theadrow.removeChild(theadrow.children[3]);;
+        }
+
     for (var i = 0; i < users.length; i++) {
         (function(i) {
             var row = document.createElement('tr');
         
+            var cell_number = document.createElement('td');
             if (aliveIndex[i] == 1) {
-                var cell_number = document.createElement('td');
                 cell_number.appendChild(document.createTextNode(i+1));
             } else {
                 cell_number.appendChild(document.createTextNode('X'));
@@ -493,17 +534,15 @@ Lobby.prototype.gameplay_showuserList_night = function(users) {
                 pickBtn.innerHTML = '选择此人';
 
                 pickBtn.addEventListener('click', function() {
-                    console.log('i = '+ i );
-                    that.systemLog('你选择了 ' + (i+1) + ' 号');
                     that.socket.emit('pickTarget', i, myRole);
                     myTarget = i;
                 },false);
+                pickBtn.setAttribute("class","pickBtn");
             } else {
                 pickBtn.innerHTML = '已死亡';
-                pickBtn.disabled = true;  
+                pickBtn.disabled = true;
             }
             pickBtn.setAttribute("id","pick" + i);
-            pickBtn.setAttribute("class","pickBtn");
             cell_pickBtn.appendChild(pickBtn);
             row.appendChild(cell_pickBtn);
 
@@ -517,7 +556,17 @@ Lobby.prototype.gameplay_showuserList_night = function(users) {
     document.getElementById('startBtn').className = 'mainBtnOff';
     document.getElementById('restartBtn').className = 'mainBtnOff';
     document.getElementById('voteBtn').className = 'mainBtnOff';
-    document.getElementById('confirmBtn').className = 'mainBtnOn';
+    document.getElementById('sawvoteresultBtn').className = 'mainBtnOff';
+
+    if (aliveIndex[users_local.indexOf(myusername)] == 1) {
+        document.getElementById('confirmBtn').className = 'mainBtnOn';
+        document.getElementById('confirmBtn').disabled = false;
+    } else {
+        document.getElementById('confirmBtn').className = 'mainBtnOff';
+        document.getElementById('gameInstructionContent').innerHTML = '你已经死了';
+    }
+
+    myTarget = -1;
 }
 
 Lobby.prototype.gameplay_showuserList_day = function(users) {
@@ -525,6 +574,11 @@ Lobby.prototype.gameplay_showuserList_day = function(users) {
         old_tableBody = table.children[1];
         new_tableBody = document.createElement('tbody');
         that = this;
+
+        var theadrow = table.children[0].children[0];
+        if (typeof theadrow.children[3] != 'undefined') {
+           theadrow.removeChild(theadrow.children[3]);;
+        }
 
     for (var i = 0; i < users.length; i++) {
         (function(i) {
@@ -549,17 +603,16 @@ Lobby.prototype.gameplay_showuserList_day = function(users) {
                 pickBtn.innerHTML = '选择此人';
 
                 pickBtn.addEventListener('click', function() {
-                    console.log('i = '+ i );
-                    that.systemLog('你选择了 ' + (i+1) + ' 号');
                     that.socket.emit('pickTarget', i, myRole);
                     myTarget = i;
                 },false);
+                pickBtn.setAttribute("class","pickBtn");
             } else {
                 pickBtn.innerHTML = '已死亡';
                 pickBtn.disabled = true;
             }
             pickBtn.setAttribute("id","pick" + i);
-            pickBtn.setAttribute("class","pickBtn");
+
             cell_pickBtn.appendChild(pickBtn);
             row.appendChild(cell_pickBtn);
 
@@ -570,8 +623,15 @@ Lobby.prototype.gameplay_showuserList_day = function(users) {
 
     document.getElementById('startBtn').className = 'mainBtnOff';
     document.getElementById('restartBtn').className = 'mainBtnOff';
-    document.getElementById('voteBtn').className = 'mainBtnOn';
     document.getElementById('confirmBtn').className = 'mainBtnOff';
+    document.getElementById('sawvoteresultBtn').className = 'mainBtnOff';
+
+    if (aliveIndex[users_local.indexOf(myusername)] == 1) {
+        document.getElementById('voteBtn').className = 'mainBtnOn';
+    } else {
+        document.getElementById('voteBtn').className = 'mainBtnOff';
+        document.getElementById('gameInstructionContent').innerHTML = '你已经死了';
+    }
 
     myTarget = -1;
 }
@@ -596,6 +656,7 @@ Lobby.prototype.gameplay_addtargetCol = function(users) {
 }
 
 Lobby.prototype.gameplay_aliveIndex_init = function() {
+    aliveIndex = [];
     for (var i = 0; i < users_local.length; i++) {
         aliveIndex.push(1);
     }
@@ -648,9 +709,88 @@ Lobby.prototype.endgame_showuserList = function(playerList) {
     document.getElementById('startBtn').className = 'mainBtnOff';
     document.getElementById('voteBtn').className = 'mainBtnOff';
     document.getElementById('confirmBtn').className = 'mainBtnOff';
+    document.getElementById('sawvoteresultBtn').className = 'mainBtnOff';
 }
 
+Lobby.prototype.gameplay_showvoteResult = function(votes) {
+    var that = this;
+    debugger;
+    for (var i = 0; i < votes.length; i++) {
+        if (votes[i] != -1) {
+            document.getElementById('target'+i).innerHTML = users_local[votes[i]];
+        } else {
+            document.getElementById('target'+i).innerHTML = 'N/A';
+        }
+    }
+    document.getElementById('voteBtn').className = 'mainBtnOff';
+    document.getElementById('sawvoteresultBtn').className = 'mainBtnOn';
+    document.getElementById('sawvoteresultBtn').disabled = false;
+    document.getElementById('sawvoteresultBtn').addEventListener('click', function() {
+        that.socket.emit('sawvoteResult');
+    });
+    debugger;
+}
 
+Lobby.prototype.gameplay_showRevote = function(convict, users) {
+    var table = document.getElementById('playerList');
+        old_tableBody = table.children[1];
+        new_tableBody = document.createElement('tbody');
+        that = this;
+
+        var theadrow = table.children[0].children[0];
+        if (typeof theadrow.children[3] != 'undefined') {
+           theadrow.children[3].innerHTML = "TA的选择";
+        }
+
+    for (var i = 0; i < users.length; i++) {
+        (function(i) {
+            var row = document.createElement('tr');
+            
+            var cell_number = document.createElement('td');
+            if (aliveIndex[i] == 1) {
+                cell_number.appendChild(document.createTextNode(i+1));
+            } else {
+                cell_number.appendChild(document.createTextNode('X'));
+            }
+            row.appendChild(cell_number);
+
+            
+            var cell_id = document.createElement('td');
+            cell_id.appendChild(document.createTextNode(users[i]));
+            row.appendChild(cell_id);
+
+            var cell_pickBtn = document.createElement('td');
+            var pickBtn = document.createElement('button');
+            if (convict.indexOf(i) != -1) {
+                
+                pickBtn.innerHTML = '选择此人';
+
+                pickBtn.addEventListener('click', function() {
+                    that.socket.emit('pickTarget', i, myRole);
+                    myTarget = i;
+                },false);
+                pickBtn.setAttribute("class","pickBtn");
+            } else {
+                pickBtn.innerHTML = '';
+                pickBtn.disabled = true;
+            }
+            pickBtn.setAttribute("id","pick" + i);
+            cell_pickBtn.appendChild(pickBtn);
+            row.appendChild(cell_pickBtn);
+
+            new_tableBody.appendChild(row);
+        }(i));
+    }   
+    table.replaceChild(new_tableBody,old_tableBody);
+
+    document.getElementById('startBtn').className = 'mainBtnOff';
+    document.getElementById('restartBtn').className = 'mainBtnOff';
+    document.getElementById('voteBtn').className = 'mainBtnOn';
+    document.getElementById('confirmBtn').className = 'mainBtnOff';
+    document.getElementById('sawvoteresultBtn').className = 'mainBtnOn';
+
+    myTarget = -1;
+}
 
 
 

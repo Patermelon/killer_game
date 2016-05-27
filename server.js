@@ -12,17 +12,22 @@ server.listen(process.env.PORT || 8888);
 //define variables
 var users = [];              // the list of users' id
     roomhostExits = 0;       // By default, there is no roomhost
+    clientId = [];
+
     GameMode = require('./www/scripts/GameMode');
     gameModeIndicator = new GameMode('3');
     Game_core = require('./www/scripts/Game_core');
     playerList = [];         //playerList stores the player info needed for gameplay
     
+    numberofplayerAlive = gameModeIndicator.numberofPlayer();
     cops_target = [];
     killers_target = [];
     doctor_target = -1;
     sniper_target = -1;
     sniper_ammo = 1;
     response_count = 0;
+    votes = [];
+    isRevote = 0;
 
 
 /*  a simple function allowing us to toggle on/off debug messages to console.   */
@@ -62,6 +67,7 @@ io.sockets.on('connection', function(socket) {
             //socket.userIndex = users.length;// I wonder if .userIndex will be used in anyway, seems not
             socket.username = id;
             users.push(id);
+            clientId[id] = socket.id;
             socket.emit('loginSuccess',id); 
             _debug_logtoConsole('users = ' + users);
             socket.broadcast.emit('system',id,'login');
@@ -133,6 +139,7 @@ io.sockets.on('connection', function(socket) {
     //roomhost made change to gameMode
     socket.on('gameModeChange', function(gameMode_name) {
         gameModeIndicator.name = gameMode_name;
+        numberofplayerAlive = gameModeIndicator.numberofPlayer();
         socket.emit('gameModeChanged', gameMode_name);
         socket.broadcast.emit('gameModeChanged',gameMode_name);
         _debug_logtoConsole('gameMode changed to ' + gameMode_name);
@@ -150,6 +157,7 @@ io.sockets.on('connection', function(socket) {
     socket.on('gameStart', function() {
         //initializing game
         playerList = Game_core.playerListInit(users, gameModeIndicator);
+        numberofplayerAlive = gameModeIndicator.numberofPlayer();
         cops_target = [];
         killers_target = [];
         doctor_target = -1;
@@ -160,32 +168,36 @@ io.sockets.on('connection', function(socket) {
         console.log('game instance initialized,');
         console.log(playerList);
 
+        playerList.forEach(function(i) {
+            switch (i.role) {
+                case 1:
+                    io.sockets.connected[clientId[i.name]].join('cops');
+                    break;
+                case 2:
+                    io.sockets.connected[clientId[i.name]].join('killers');
+                    break;
+                case 4:
+                    io.sockets.connected[clientId[i.name]].join('sniper');
+                default :
+            }
+        });
+
         socket.broadcast.emit('gameStarted',users);
         socket.emit('gameStarted',users);
     });
 
     socket.on('pullInstruction', function() {
-        var userIndex = users.indexOf(socket.username);
+        console.log(socket.username + ' pulling instruction');
+        var userIndex = users.indexOf(socket.username),
             userRole = playerList[userIndex].role;
             teammates = [];
-        
+
         if (userRole == 1 || userRole == 2) {
             teammates = Game_core.findTeammates(gameModeIndicator,playerList, userIndex);
         }
 
         socket.emit('sendInstruction', playerList[userIndex].role, teammates);
 
-        switch (userRole) { //don't forget to unsubscribe when dead or game end
-            case 1:
-                socket.join('cops');
-                break;
-            case 2:
-                socket.join('killers');
-                break;
-            case 4:
-                socket.join('sniper');
-            default :
-        }
     });
 
     socket.on('pickTarget', function(targetIndex, myRole) {
@@ -209,6 +221,7 @@ io.sockets.on('connection', function(socket) {
 
         _debug_logtoConsole('this response is from '+ socket.username);
         _debug_logtoConsole('the target is ' + playerList[myTarget].name);
+        _debug_logtoConsole('numberofplayerAlive = '+ numberofplayerAlive);
 
 
         switch (myRole) {
@@ -246,7 +259,7 @@ io.sockets.on('connection', function(socket) {
         console.log('killers\' target is:' );
         console.log(killers_target);
 
-        if (response_count < users.length) {
+        if (response_count < numberofplayerAlive) {
             socket.emit('waitforalltoRespond');
         } else {
             socket.emit('waitforalltoRespond');
@@ -256,9 +269,48 @@ io.sockets.on('connection', function(socket) {
 
     });
 
+    socket.on('confirmVote', function(myTarget) {
+        var userIndex = users.indexOf(socket.username);
 
+        socket.emit('target_fixed');
 
+        response_count++;
 
+        votes[userIndex] = myTarget;
+        
+        _debug_logtoConsole('this vote is from '+ socket.username);
+        _debug_logtoConsole('the target is ' + playerList[myTarget].name);
+        console.log(votes);
+
+        if (response_count < numberofplayerAlive) {
+            socket.emit('waitforotherVotes');
+        } else {
+            socket.emit('waitforotherVotes');
+            response_count = 0;
+
+            var convict;
+            convict = Game_core.countVote(votes);
+
+            console.log('the verdict says: ');
+            console.log(convict);
+
+            socket.broadcast.emit('voteResult', votes);
+            socket.emit('voteResult', votes);
+        }
+    });
+
+    socket.on('sawvoteResult', function() {
+        response_count++;
+
+        if (response_count < numberofplayerAlive) {
+            socket.emit('waitforothervoteResult');
+        } else {
+            socket.emit('waitforothervoteResult');
+            response_count = 0;
+            console.log('calling daySettlement');
+            daySettlement(socket);
+        }
+    });
 
 
 
@@ -287,7 +339,7 @@ function nightSettlement(socket) {
 
 
     var deathpool = [];
-    _debug_logtoConsole('victim = ' + playerList[victim].name);
+    //_debug_logtoConsole('victim = ' + playerList[victim].name);
     _debug_logtoConsole('doctor_target = ' + doctor_target);
 
     if (doctor_target != -1) {
@@ -316,6 +368,8 @@ function nightSettlement(socket) {
         io.to('sniper').emit('snipeDone');
     }
 
+    leaveRoom(deathpool);
+
     cops_target = [];
     killers_target = [];
     doctor_target = -1;
@@ -326,14 +380,100 @@ function nightSettlement(socket) {
     console.log(playerList);
     _debug_logtoConsole('win_flag = ' + win_flag);
     
+    socket.broadcast.emit('deathReport',deathpool);
+    socket.emit('deathReport',deathpool);
+
     if (win_flag != 0) {
         socket.broadcast.emit('win', win_flag, playerList);
         socket.emit('win',win_flag, playerList);
-    } else {
-        socket.broadcast.emit('deathReport',deathpool);
-        socket.emit('deathReport',deathpool);
+    }
+
+    //initializing the vote array
+    for (var i = 0; i < users.length; i++) {
+        votes[i] = -1;
     }
 }
+
+
+function daySettlement(socket) {
+    debugger;
+    var convict;
+        convict = Game_core.countVote(votes);
+
+    if (isRevote == 0){
+        if (convict.length > 1) {
+            socket.broadcast.emit('revote', convict);
+            socket.emit('revote', convict);
+            isRevote = 1;
+            return;
+        }
+    }
+
+    isRevote = 0;
+
+    convict.forEach(function(i) {
+        playerList[i].kill();
+    });
+
+    leaveRoom(convict);
+
+    socket.broadcast.emit('enterNight',convict);
+    socket.emit('enterNight',convict);
+
+    var win_flag = Game_core.checkWin(gameModeIndicator,playerList);
+    if (win_flag != 0) {
+        socket.broadcast.emit('win', win_flag, playerList);
+        socket.emit('win',win_flag, playerList);
+    }
+
+    console.log(playerList);
+    _debug_logtoConsole('win_flag = ' + win_flag);
+}
+
+function leaveRoom(deathpool) {
+    deathpool.forEach(function(i) {
+        var player = playerList[i];
+        switch (player.role) {
+            case 1:
+                io.sockets.connected[clientId[player.name]].leave('cops');
+                break;
+            case 2:
+                io.sockets.connected[clientId[player.name]].leave('killers');
+                break;
+            case 4:
+                io.sockets.connected[clientId[player.name]].leave('sniper');
+            default :
+        }
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
