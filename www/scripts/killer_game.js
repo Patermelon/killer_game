@@ -157,6 +157,8 @@ Lobby.prototype = {
                 teammatesInfo.innerHTML = '你的队友是：' +  teammates;
                 document.getElementById('gameInstructionContent').appendChild(teammatesInfo);
             }
+
+            document.getElementById('myRole').innerHTML = gameMode.roleName(myRole);
         });
 
         this.socket.on('teammates_target', function(targetIndex, teammatesIndex) {
@@ -250,6 +252,7 @@ Lobby.prototype = {
                     break;
                 default :
             }
+            debugger;
             that.endgame_showuserList(playerList);
         });
 
@@ -269,6 +272,10 @@ Lobby.prototype = {
             }
         });
 
+        document.getElementById('sawvoteresultBtn').addEventListener('click', function() {
+            that.socket.emit('sawvoteResult');
+        });
+
         this.socket.on('waitforotherVotes', function() {
             document.getElementById('voteBtn').disabled = true;
             document.getElementById('gameInstructionContent').innerHTML = '等待其他人投票...'; 
@@ -285,6 +292,7 @@ Lobby.prototype = {
         });
 
         this.socket.on('revote', function(convict) {
+            debugger;
             that.gameplay_showRevote(convict, users_local);
             document.getElementById('gameInstructionContent').innerHTML = '平票，辩论后再次投票'; 
         });
@@ -628,12 +636,14 @@ Lobby.prototype.gameplay_showuserList_day = function(users) {
 
     if (aliveIndex[users_local.indexOf(myusername)] == 1) {
         document.getElementById('voteBtn').className = 'mainBtnOn';
+        document.getElementById('voteBtn').disabled = false;
     } else {
         document.getElementById('voteBtn').className = 'mainBtnOff';
         document.getElementById('gameInstructionContent').innerHTML = '你已经死了';
     }
 
     myTarget = -1;
+    debugger;
 }
             
 Lobby.prototype.gameplay_addtargetCol = function(users) {
@@ -714,7 +724,6 @@ Lobby.prototype.endgame_showuserList = function(playerList) {
 
 Lobby.prototype.gameplay_showvoteResult = function(votes) {
     var that = this;
-    debugger;
     for (var i = 0; i < votes.length; i++) {
         if (votes[i] != -1) {
             document.getElementById('target'+i).innerHTML = users_local[votes[i]];
@@ -722,13 +731,14 @@ Lobby.prototype.gameplay_showvoteResult = function(votes) {
             document.getElementById('target'+i).innerHTML = 'N/A';
         }
     }
-    document.getElementById('voteBtn').className = 'mainBtnOff';
-    document.getElementById('sawvoteresultBtn').className = 'mainBtnOn';
-    document.getElementById('sawvoteresultBtn').disabled = false;
-    document.getElementById('sawvoteresultBtn').addEventListener('click', function() {
-        that.socket.emit('sawvoteResult');
-    });
-    debugger;
+    
+    if (aliveIndex[users_local.indexOf(myusername)] == 1) {
+        document.getElementById('voteBtn').className = 'mainBtnOff';
+        document.getElementById('sawvoteresultBtn').className = 'mainBtnOn';
+        document.getElementById('sawvoteresultBtn').disabled = false;
+    } else {
+        document.getElementById('gameInstructionContent').innerHTML = '你已经死了';
+    }
 }
 
 Lobby.prototype.gameplay_showRevote = function(convict, users) {
@@ -778,6 +788,11 @@ Lobby.prototype.gameplay_showRevote = function(convict, users) {
             cell_pickBtn.appendChild(pickBtn);
             row.appendChild(cell_pickBtn);
 
+            var cell_target = document.createElement('td');
+            cell_target.appendChild(document.createTextNode(' '));
+            cell_target.setAttribute('id','target' + i);
+            row.appendChild(cell_target);
+
             new_tableBody.appendChild(row);
         }(i));
     }   
@@ -785,9 +800,17 @@ Lobby.prototype.gameplay_showRevote = function(convict, users) {
 
     document.getElementById('startBtn').className = 'mainBtnOff';
     document.getElementById('restartBtn').className = 'mainBtnOff';
-    document.getElementById('voteBtn').className = 'mainBtnOn';
     document.getElementById('confirmBtn').className = 'mainBtnOff';
-    document.getElementById('sawvoteresultBtn').className = 'mainBtnOn';
+    document.getElementById('sawvoteresultBtn').className = 'mainBtnOff';
+
+    if (aliveIndex[users_local.indexOf(myusername)] == 1) {
+        document.getElementById('voteBtn').className = 'mainBtnOn';
+        document.getElementById('voteBtn').disabled = false;
+    } else {
+        document.getElementById('voteBtn').className = 'mainBtnOff';
+        document.getElementById('voteBtn').disabled = true;
+        document.getElementById('gameInstructionContent').innerHTML = '你已经死了';
+    }
 
     myTarget = -1;
 }

@@ -157,14 +157,12 @@ function countVote(votes) {
 	for (var i = 0; i < votes.length; i++) {
 		count[i] = 0;
 	}
-	console.log(count);
 
 	for (var i = 0; i < numberofPlayer; i++) {	
 		if (votes[i]!= -1) {
 			count[votes[i]]++;
 		}
 	}
-	console.log(count);
 
 	max = Math.max.apply(Math,count);
 	index = count.indexOf(max);

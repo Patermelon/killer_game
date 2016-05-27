@@ -15,7 +15,7 @@ var users = [];              // the list of users' id
     clientId = [];
 
     GameMode = require('./www/scripts/GameMode');
-    gameModeIndicator = new GameMode('3');
+    gameModeIndicator = new GameMode('7');
     Game_core = require('./www/scripts/Game_core');
     playerList = [];         //playerList stores the player info needed for gameplay
     
@@ -187,7 +187,6 @@ io.sockets.on('connection', function(socket) {
     });
 
     socket.on('pullInstruction', function() {
-        console.log(socket.username + ' pulling instruction');
         var userIndex = users.indexOf(socket.username),
             userRole = playerList[userIndex].role;
             teammates = [];
@@ -266,7 +265,8 @@ io.sockets.on('connection', function(socket) {
             response_count = 0;
             nightSettlement(socket);
         }
-
+        console.log('votes initialized');
+        console.log(votes);
     });
 
     socket.on('confirmVote', function(myTarget) {
@@ -280,12 +280,14 @@ io.sockets.on('connection', function(socket) {
         
         _debug_logtoConsole('this vote is from '+ socket.username);
         _debug_logtoConsole('the target is ' + playerList[myTarget].name);
+        _debug_logtoConsole('response_count = ' + response_count);
         console.log(votes);
 
         if (response_count < numberofplayerAlive) {
             socket.emit('waitforotherVotes');
         } else {
             socket.emit('waitforotherVotes');
+            _debug_logtoConsole('response_count set to 0');
             response_count = 0;
 
             var convict;
@@ -300,6 +302,9 @@ io.sockets.on('connection', function(socket) {
     });
 
     socket.on('sawvoteResult', function() {
+        _debug_logtoConsole(socket.username + ' has read the voteResult.');
+        _debug_logtoConsole('response_count = ' + response_count);
+
         response_count++;
 
         if (response_count < numberofplayerAlive) {
@@ -340,25 +345,35 @@ function nightSettlement(socket) {
 
     var deathpool = [];
     //_debug_logtoConsole('victim = ' + playerList[victim].name);
-    _debug_logtoConsole('doctor_target = ' + doctor_target);
+    console.log('doctor_target = ' + doctor_target);
 
-    if (doctor_target != -1) {
-        if (doctor_target != victim) {
+    if (victim != -1) {
+        if (doctor_target != -1) {
+            if (doctor_target != victim) {
+                playerList[victim].kill();
+                deathpool.push(victim);
+                playerList[doctor_target].toxincount++;
+            }
+        } else {
             playerList[victim].kill();
             deathpool.push(victim);
+            console.log(playerList[victim].isAlive);
+        }
+    } else {
+        if (doctor_target != -1) {
             playerList[doctor_target].toxincount++;
         }
-        if (playerList[doctor_target].toxincount == 2) {
+    }
+
+    if (doctor_target != -1) {
+        if (playerList[doctor_target].toxincount >= 2) {
             playerList[doctor_target].kill();
             if (deathpool.indexOf(doctor_target) == -1) {
                 deathpool.push(doctor_target);
             }
         }
-    } else {
-        playerList[victim].kill();
-        deathpool.push(victim);
-        console.log(playerList[victim].isAlive);
     }
+
     if (sniper_target != -1) {
         playerList[sniper_target].kill();
         if (deathpool.indexOf(sniper_target) == -1) {
@@ -386,29 +401,43 @@ function nightSettlement(socket) {
     if (win_flag != 0) {
         socket.broadcast.emit('win', win_flag, playerList);
         socket.emit('win',win_flag, playerList);
+        return;
     }
 
     //initializing the vote array
     for (var i = 0; i < users.length; i++) {
         votes[i] = -1;
     }
+
+    isRevote = 0;
 }
 
 
 function daySettlement(socket) {
     debugger;
+    console.log('the votes is:');
+    console.log(votes);
     var convict;
         convict = Game_core.countVote(votes);
 
+    console.log('convict is: ');
+    console.log(convict);
+    console.log('isRevote = ' + isRevote);
     if (isRevote == 0){
         if (convict.length > 1) {
             socket.broadcast.emit('revote', convict);
             socket.emit('revote', convict);
             isRevote = 1;
+
+            for (var i = 0; i < users.length; i++) {
+                votes[i] = -1;
+            }            
+            _debug_logtoConsole('before revote, the response_count is' + response_count);
             return;
         }
     }
 
+    console.log('it is revote.');
     isRevote = 0;
 
     convict.forEach(function(i) {
@@ -417,17 +446,18 @@ function daySettlement(socket) {
 
     leaveRoom(convict);
 
-    socket.broadcast.emit('enterNight',convict);
-    socket.emit('enterNight',convict);
-
     var win_flag = Game_core.checkWin(gameModeIndicator,playerList);
     if (win_flag != 0) {
         socket.broadcast.emit('win', win_flag, playerList);
         socket.emit('win',win_flag, playerList);
+        return;
     }
 
     console.log(playerList);
     _debug_logtoConsole('win_flag = ' + win_flag);
+
+    socket.broadcast.emit('enterNight',convict);
+    socket.emit('enterNight',convict);
 }
 
 function leaveRoom(deathpool) {

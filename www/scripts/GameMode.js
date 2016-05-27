@@ -66,15 +66,15 @@ GameMode.prototype.roleInstruction = function(role) {
 		default :
 			switch (role) {
 				case 0 :
-					return '你是平民。 随便点一下吧。';
+					return '请随便选一个人，然后确定。';
 				case 1 :
-					return '你是警察。 请选择要验的人，然后确定 &#13;（意见不统一则行动作废）。';
+					return '请选择要验的人，然后确定（意见不统一则行动作废）。';
 				case 2 :
-					return '你是杀手。 请选择要杀的人，然后确定 &#13;（意见不统一则行动作废）。';
+					return '请选择要杀的人，然后确定（意见不统一则行动作废）。';
 				case 3 :
-					return '你是医生。 请选择要用药的人，然后确定。';
+					return '请选择要用药的人，然后确定。';
 				case 4 :
-					return '你是狙击手。 请选择要狙的人，然后确定。';
+					return '请选择要狙的人，然后确定。';
 				default :
 					return ' ';
 			}
