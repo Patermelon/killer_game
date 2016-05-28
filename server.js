@@ -167,17 +167,23 @@ io.sockets.on('connection', function(socket) {
         
         console.log('game instance initialized,');
         console.log(playerList);
+        console.log(clientId);
+
+        var targetSocket = null;
+        debugger;
 
         playerList.forEach(function(i) {
+            targetSocket = io.sockets.connected[clientId[i.name]];
+            console.log('id for ' + i.name + ' is '+ targetSocket.id);
             switch (i.role) {
                 case 1:
-                    io.sockets.connected[clientId[i.name]].join('cops');
+                    targetSocket.join('cops');
                     break;
                 case 2:
-                    io.sockets.connected[clientId[i.name]].join('killers');
+                    targetSocket.join('killers');
                     break;
                 case 4:
-                    io.sockets.connected[clientId[i.name]].join('sniper');
+                    targetSocket.join('sniper');
                 default :
             }
         });
