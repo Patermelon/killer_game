@@ -168,6 +168,7 @@ io.sockets.on('connection', function(socket) {
         console.log('game instance initialized,');
         console.log(playerList);
         console.log(clientId);
+        console.log(io.sockets.connected);
 
         var targetSocket = null;
         debugger;
