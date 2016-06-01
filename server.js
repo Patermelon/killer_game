@@ -171,7 +171,6 @@ io.sockets.on('connection', function(socket) {
         console.log(io.sockets.connected);
 
         var targetSocket = null;
-        debugger;
 
         playerList.forEach(function(i) {
             targetSocket = io.sockets.connected[clientId[i.name]];
@@ -418,7 +417,6 @@ function nightSettlement(socket) {
 
     isRevote = 0;
 }
-
 
 function daySettlement(socket) {
     debugger;

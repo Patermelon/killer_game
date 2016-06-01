@@ -1,20 +1,20 @@
 // a variable to toggle the _debug_feedback()
 var _debugOn = 0;
 
-// upon loading, initializing the lobby
+// upon loading, initializing the game
 window.onload = function() {
-    var lobby = new Lobby();
-    lobby.init();
+    var game = new Game();
+    game.init();
 }
 
 /*========================================================
-    the Lobby class
+    the Game class
 
-        handles user login and the lobby functionality
+        handles all game functionalities
 
 ==========================================================*/
 
-var Lobby = function() {
+var Game = function() {
     this.socket = null;
     var flag_imroomhost = 0;
         myusername = '';
@@ -24,10 +24,10 @@ var Lobby = function() {
         myRole = '';
         myTarget = -1;
         myAmmo = 1;
-}//Lobby constructor
+}//Game constructor
 
 
-Lobby.prototype = {
+Game.prototype = {
     init: function() {
         var that = this;
         this.socket = io.connect();
@@ -131,6 +131,7 @@ Lobby.prototype = {
 
         this.socket.on('gameStarted', function(users) {           
             document.getElementById('historyMsg').innerHTML = '';
+            document.getElementById('myRole').innerHTML = '我的身份';
             that.systemLog('游戏开始了！');
             
             //initializing variables
@@ -341,9 +342,9 @@ Lobby.prototype = {
 
 }
 
-//  functions used in Lobby.init()
+//  functions used in Game.init()
 
-Lobby.prototype.systemLog = function(log, id) {
+Game.prototype.systemLog = function(log, id) {
         var logmsg = document.createElement('p');
         container = document.getElementById('historyMsg');
         if (typeof id == 'undefined') {
@@ -357,7 +358,7 @@ Lobby.prototype.systemLog = function(log, id) {
         container.scrollTop = container.scrollHeight;
 }
 
-Lobby.prototype._displayNewMsg = function(user, msg, color) {
+Game.prototype._displayNewMsg = function(user, msg, color) {
     var container = document.getElementById('historyMsg'),
             msgToDisplay = document.createElement('p'),
             date = new Date().toTimeString().substr(0, 8);
@@ -367,14 +368,14 @@ Lobby.prototype._displayNewMsg = function(user, msg, color) {
         container.scrollTop = container.scrollHeight;
 }
 
-Lobby.prototype._displayDescription = function(gameMode) {
+Game.prototype._displayDescription = function(gameMode) {
     var msgToDisplay = document.getElementById('gameDescription');
     this._debug_feedback('showing gameMode.description');
     this._debug_feedback('it should be ' + gameMode.description());
     msgToDisplay.innerHTML = gameMode.description();
 }
 
-Lobby.prototype.lobby_showgameInfo = function(gameMode) {
+Game.prototype.lobby_showgameInfo = function(gameMode) {
     if (flag_imroomhost == 1) {
         this._debug_feedback('I am host now, should display hostWrapper.');
         document.getElementById('roomhostWrapper').style.display = "block";
@@ -392,7 +393,7 @@ Lobby.prototype.lobby_showgameInfo = function(gameMode) {
     this._displayDescription(gameMode);
 }
 
-Lobby.prototype.lobby_showuserList = function(users) {
+Game.prototype.lobby_showuserList = function(users) {
     var table = document.getElementById('playerList');
     var old_tableBody = table.children[1];
     var new_tableBody = document.createElement('tbody');
@@ -479,7 +480,7 @@ Lobby.prototype.lobby_showuserList = function(users) {
     document.getElementById('sawvoteresultBtn').className = 'mainBtnOff';
 }
 
-Lobby.prototype._debug_feedback = function(log) {
+Game.prototype._debug_feedback = function(log) {
     if (_debugOn == 1) {
         var logmsg = document.createElement('p');
         logmsg.innerHTML = log;
@@ -497,7 +498,7 @@ Lobby.prototype._debug_feedback = function(log) {
 =========================================================================*/
 
 
-Lobby.prototype.gameplay_showgameInfo = function(gameMode) {
+Game.prototype.gameplay_showgameInfo = function(gameMode) {
 
     document.getElementById('roomhostWrapper').style.display = "none";
     document.getElementById('roomguestWrapper').style.display = "block";
@@ -509,7 +510,7 @@ Lobby.prototype.gameplay_showgameInfo = function(gameMode) {
     this._displayDescription(gameMode);
 }
 
-Lobby.prototype.gameplay_showuserList_night = function(users) {
+Game.prototype.gameplay_showuserList_night = function(users) {
     var table = document.getElementById('playerList');
         old_tableBody = table.children[1];
         new_tableBody = document.createElement('tbody');
@@ -577,7 +578,7 @@ Lobby.prototype.gameplay_showuserList_night = function(users) {
     myTarget = -1;
 }
 
-Lobby.prototype.gameplay_showuserList_day = function(users) {
+Game.prototype.gameplay_showuserList_day = function(users) {
     var table = document.getElementById('playerList');
         old_tableBody = table.children[1];
         new_tableBody = document.createElement('tbody');
@@ -646,7 +647,7 @@ Lobby.prototype.gameplay_showuserList_day = function(users) {
     debugger;
 }
             
-Lobby.prototype.gameplay_addtargetCol = function(users) {
+Game.prototype.gameplay_addtargetCol = function(users) {
 
     var tbody = document.getElementById('playerList').children[1]
     var thead = document.getElementById('playerList').children[0];
@@ -665,14 +666,14 @@ Lobby.prototype.gameplay_addtargetCol = function(users) {
     }
 }
 
-Lobby.prototype.gameplay_aliveIndex_init = function() {
+Game.prototype.gameplay_aliveIndex_init = function() {
     aliveIndex = [];
     for (var i = 0; i < users_local.length; i++) {
         aliveIndex.push(1);
     }
 }
 
-Lobby.prototype.endgame_showuserList = function(playerList) {
+Game.prototype.endgame_showuserList = function(playerList) {
     var table = document.getElementById('playerList');
         old_tableBody = table.children[1];
         new_tableBody = document.createElement('tbody');
@@ -722,7 +723,7 @@ Lobby.prototype.endgame_showuserList = function(playerList) {
     document.getElementById('sawvoteresultBtn').className = 'mainBtnOff';
 }
 
-Lobby.prototype.gameplay_showvoteResult = function(votes) {
+Game.prototype.gameplay_showvoteResult = function(votes) {
     var that = this;
     for (var i = 0; i < votes.length; i++) {
         if (votes[i] != -1) {
@@ -741,7 +742,7 @@ Lobby.prototype.gameplay_showvoteResult = function(votes) {
     }
 }
 
-Lobby.prototype.gameplay_showRevote = function(convict, users) {
+Game.prototype.gameplay_showRevote = function(convict, users) {
     var table = document.getElementById('playerList');
         old_tableBody = table.children[1];
         new_tableBody = document.createElement('tbody');

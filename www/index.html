@@ -61,6 +61,7 @@
                 <button id = "voteBtn" class = 'mainBtnOff'> 投票 </button>
                 <button id = "sawvoteresultBtn" class = 'mainBtnOff'> 确认结果 </button>
             </div>
+
         </div>
 		
 		<div class = "chatWrapper">
@@ -68,14 +69,25 @@
 			<div id="historyMsg"> </div>
             <div class = 'MsgControl'>
                 <div class = 'ControlButtons'>
-                    <label for = 'colorWrapper'>
-                        字体颜色: 
-                        <input id = 'colorStyle' type = 'color' value = '#ffff80'/>
-                    </label>
+                    <div id = 'colorWrapper'>
+                        <div id = "font-color">
+                            <span  title = "仅支持chrome"> 字体颜色: </span>
+                            <input id = 'colorStyle' type = 'color' value = '#ffff80'/>
+                        </div>
+                    </div>
                 </div>     
             	<textarea id = 'messageInput'></textarea>
             	<button id = 'sendBtn' type = 'button'> 发送 </button>
             </div>
+            <footer id = "footer">
+                <table class = 'footer'>
+                    <tbody></tbody>
+                        <tr>
+                            <td> 联系作者 <a href = "mailto:patricuswen@gmail.com">patricuswen@gmail.com  </td>
+                            <td> 查看源码 <a href = "https://github.com/Patermelon/killer_game">     github </td>
+                        </tr>
+                </table>
+            </footer>
 		</div>
 
         <div id="loginWrapper" class = "newline">
@@ -91,7 +103,6 @@
         <script src="scripts/killer_game.js"></script>
 
 	</body>
-
 
 
 

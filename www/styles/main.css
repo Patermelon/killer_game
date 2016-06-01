@@ -6,6 +6,10 @@ html, body {
     background-size: 100% auto;
 }
 
+a {
+    color:#fff;
+}
+
 /*  _Section: background  */
 
 .wrapper {
@@ -14,6 +18,21 @@ html, body {
     padding: 5px;
     margin: 0 auto;
     color: #fff;
+}
+
+#footer {
+  position: relative;
+  clear:both;
+  text-align: right;
+  font-size: 12px;
+  margin-top: 100px;
+  line-height: 2px;
+} 
+
+table.footer td {
+    width: auto;
+    padding-left: 50px;
+    border: none;
 }
 
 /*  _Section: lobby   */
@@ -104,17 +123,10 @@ h3#welcome {
 table {
     border-collapse: collapse;
     margin:0 auto;
-}
-
-th {
     text-align: center;
 }
 
-td {
-    text-align: center;
-}
-
-tr:hover {
+.lobby tr:hover {
     //background-color: rgba(204,204,204,.3);
 }
 
@@ -196,11 +208,6 @@ tr:hover {
     border-radius: 8px;
 }
 
-#colorWrapper {
-    background-color: #ffff80;
-
-}
-
 #messageInput {
 	width: 280px;
 	height: 30px;
@@ -237,6 +244,11 @@ span.name {
     color:#fff;
     font-weight:bold;
     font-family:Tahoma;
+}
+
+
+#colorWrapper:hover #font-color:after{
+    content: '仅支持chrome';
 }
 
 /*  _Section: login-window    */
